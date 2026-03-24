@@ -11,46 +11,45 @@
 </head>
 <body>
     <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
+        <canvas id="gameCanvas" class="hidden"></canvas>
+        <div id="three-container"></div>
         
         <div id="ui-overlay">
             <div class="hud">
                 <div class="stat-box">
                     <span class="label">PONTUAÇÃO SEGURA</span>
-                    <span id="safe-score" class="value">0</span>
-                </div>
-                <div class="stat-box">
                     <span class="label">VELOCIDADE</span>
                     <span id="speed" class="value">0 km/h</span>
                 </div>
-                <div class="stat-box" id="weather-box">
-                    <span class="label">CLIMA</span>
-                    <span id="weather" class="value">Ensolarado</span>
-                </div>
+                <div class="stat-item">CLIMA: <span id="weather">Ensolarado</span></div>
+                <div class="stat-item">SINAL: <span id="light-status">Verde</span></div>
+                <div class="stat-item">SCORE: <span id="safe-score">0</span></div>
             </div>
 
             <div id="safety-tip-overlay" class="hidden">
                 <div class="tip-content">
                     <h2 id="tip-title">INFRAÇÃO DETECTADA!</h2>
                     <p id="tip-text"></p>
-                    <button id="resume-btn">CONTINUAR</button>
+                    <button id="resume-btn">REINICIAR MOTOR</button>
                 </div>
             </div>
 
             <div id="start-screen">
                 <div class="intro">
-                    <h1>OWN THE ROAD</h1>
-                    <p>Global Game Jam Edition</p>
+                    <h1>OWN THE ROAD 3D</h1>
+                    <p>Global Game Jam - Safe Driving Simulator</p>
                     <div class="controls-guide">
                         <div class="control-key">↑ ACELERAR</div>
-                        <div class="control-key">↓ FREAR / RÉ</div>
+                        <div class="control-key">↓ FREAR</div>
                         <div class="control-key">← → DIREÇÃO</div>
                     </div>
-                    <button id="start-btn">INICIAR SIMULADOR</button>
+                    <button id="start-btn">INICIAR SIMULADOR 3D</button>
                 </div>
             </div>
         </div>
     </div>
+    <!-- Three.js UMD (Global) para evitar erros de CORS ao abrir arquivo localmente -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

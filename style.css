@@ -39,13 +39,19 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
-    background-color: #333; /* Fallback for the road */
+    background-color: #0f172a; 
+}
+
+#three-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
 }
 
 canvas {
     width: 100%;
     height: 100%;
-    /* No blur here, just crisp road */
+    display: block;
 }
 
 #ui-overlay {
