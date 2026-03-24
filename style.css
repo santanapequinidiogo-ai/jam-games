@@ -1,0 +1,222 @@
+:root {
+    --primary: #4f46e5;
+    --primary-glow: rgba(79, 70, 229, 0.4);
+    --bg: #0f172a;
+    --secondary: #1e293b;
+    --text: #f8fafc;
+    --danger: #ef4444;
+    --safe: #22c55e;
+    --warning: #f59e0b;
+    --accent: #38bdf8;
+    --glass: rgba(15, 23, 42, 0.85);
+
+    --font-heading: 'Outfit', sans-serif;
+    --font-ui: 'Space Grotesk', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-ui);
+    overflow: hidden;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
+    background-color: #333; /* Fallback for the road */
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    /* No blur here, just crisp road */
+}
+
+#ui-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    z-index: 10;
+}
+
+/* UI Elements */
+.hud {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 1rem;
+}
+
+.stat-box {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1.5rem;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.stat-box .label {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.stat-box .value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: var(--font-heading);
+}
+
+/* Safety Tip Overlay */
+#safety-tip-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    pointer-events: auto;
+    transition: opacity 0.3s ease;
+}
+
+.tip-content {
+    background: var(--secondary);
+    padding: 3rem;
+    border-radius: 2rem;
+    border: 2px solid var(--danger);
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(239, 68, 68, 0.3);
+    animation: scaleUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tip-content h2 {
+    color: var(--danger);
+    font-family: var(--font-heading);
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.tip-content p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    color: #cbd5e1;
+}
+
+/* Buttons */
+button {
+    pointer-events: auto;
+    cursor: pointer;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px var(--primary-glow);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    background: #6366f1;
+    box-shadow: 0 6px 20px var(--primary-glow);
+}
+
+/* Screens */
+#start-screen {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, var(--secondary), var(--bg));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    z-index: 200;
+}
+
+.intro {
+    text-align: center;
+}
+
+.intro h1 {
+    font-family: var(--font-heading);
+    font-size: 5rem;
+    letter-spacing: -2px;
+    background: linear-gradient(to bottom right, #fff, #94a3b8);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.controls-guide {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.control-key {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent);
+}
+
+.hidden {
+    display: none !important;
+    opacity: 0;
+}
+
+/* Animations */
+@keyframes slideDown {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Weather Effects */
+.rain {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}

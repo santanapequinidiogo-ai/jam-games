@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Own the Road - GGJ Safe Driving Sim</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div class="hud">
+                <div class="stat-box">
+                    <span class="label">PONTUAÇÃO SEGURA</span>
+                    <span id="safe-score" class="value">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="label">VELOCIDADE</span>
+                    <span id="speed" class="value">0 km/h</span>
+                </div>
+                <div class="stat-box" id="weather-box">
+                    <span class="label">CLIMA</span>
+                    <span id="weather" class="value">Ensolarado</span>
+                </div>
+            </div>
+
+            <div id="safety-tip-overlay" class="hidden">
+                <div class="tip-content">
+                    <h2 id="tip-title">INFRAÇÃO DETECTADA!</h2>
+                    <p id="tip-text"></p>
+                    <button id="resume-btn">CONTINUAR</button>
+                </div>
+            </div>
+
+            <div id="start-screen">
+                <div class="intro">
+                    <h1>OWN THE ROAD</h1>
+                    <p>Global Game Jam Edition</p>
+                    <div class="controls-guide">
+                        <div class="control-key">↑ ACELERAR</div>
+                        <div class="control-key">↓ FREAR / RÉ</div>
+                        <div class="control-key">← → DIREÇÃO</div>
+                    </div>
+                    <button id="start-btn">INICIAR SIMULADOR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
