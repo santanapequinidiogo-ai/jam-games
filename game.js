@@ -467,8 +467,19 @@ class Simulation {
             const side = Math.random() > 0.5 ? 1 : -1, swI = CONFIG.ROAD_WIDTH / 2;
             const pX = side * (swI + Math.random() * 5.5), pZ = this.player.mesh.position.z - 350;
             const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.5), new THREE.MeshPhongMaterial({ color: Math.random()*0xffffff }));
-            p.position.set(pX, 0.9, pZ); this.scene.add(p);
-            this.pedestrians.push({ mesh: p, speed: 0.1 + Math.random()*0.1 });
+            p.position.set(pX, 0.9, pZ); 
+            this.scene.add(p);
+
+            // Verifica se está perto de um semáforo para poder atravessar
+            const isNearSemaphore = this.semaphores.some(s => Math.abs(s.position.z - pZ) < 15);
+            this.pedestrians.push({ 
+                mesh: p, 
+                speedZ: 0.1 + Math.random()*0.1,
+                speedX: 0.15,
+                side: side,
+                willCross: isNearSemaphore && Math.random() > 0.5,
+                isCrossing: false
+            });
         }
     }
 
@@ -497,8 +508,29 @@ class Simulation {
         });
 
         this.pedestrians.forEach((p, idx) => {
-            p.mesh.position.z += p.speed;
-            if (p.mesh.position.z - this.player.mesh.position.z > 50) { this.scene.remove(p.mesh); this.pedestrians.splice(idx, 1); }
+            // Lógica de Travessia
+            if (this.lightState === 'Vermelho' && p.willCross) {
+                p.isCrossing = true;
+                p.mesh.position.x -= p.speedX * p.side; // Move em direção ao centro e outro lado
+                
+                // Se atravessou tudo, para de atravessar
+                if (Math.abs(p.mesh.position.x) > CONFIG.ROAD_WIDTH/2 + 5) p.willCross = false;
+            } else {
+                p.mesh.position.z += p.speedZ;
+            }
+
+            // Colisão com Pedestre (Atropelamento)
+            const dx = Math.abs(this.player.mesh.position.x - p.mesh.position.x);
+            const dz = Math.abs(this.player.mesh.position.z - p.mesh.position.z);
+            if (dx < 1.2 && dz < 2.0) {
+                this.safeScore -= 500;
+                this.showTip("INFRAÇÃO GRAVÍSSIMA: Atropelamento! (-500 pts)");
+            }
+
+            if (p.mesh.position.z - this.player.mesh.position.z > 50) { 
+                this.scene.remove(p.mesh); 
+                this.pedestrians.splice(idx, 1); 
+            }
         });
 
         const pZ = this.player.mesh.position.z;
