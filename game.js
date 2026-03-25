@@ -717,20 +717,35 @@ class Simulation {
         }
 
         this.traffic.forEach((c, idx) => {
-            // Lógica de Semáforo para Carros (Frenagem Localizada e Suave)
-            let maxSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
+            // Lógica de Direção Inteligente (IA)
+            let limitSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
             
-            // Identifica o semáforo mais próximo à frente deste carro específico
+            // 1. DETECÇÃO DE VEÍCULOS À FRENTE (Evitar Colisão)
+            const aheadCars = this.traffic.filter(other => 
+                other !== c && 
+                Math.abs(other.mesh.position.x - c.mesh.position.x) < 1.5 && // Mesma faixa
+                (c.isOpposite ? other.mesh.position.z > c.mesh.position.z : other.mesh.position.z < c.mesh.position.z)
+            );
+
+            if (aheadCars.length > 0) {
+                // Ordena e pega o carro mais próximo à frente
+                aheadCars.sort((a, b) => Math.abs(a.mesh.position.z - c.mesh.position.z) - Math.abs(b.mesh.position.z - c.mesh.position.z));
+                const distToCar = Math.abs(aheadCars[0].mesh.position.z - c.mesh.position.z);
+                
+                // Se houver carro perto à frente, reduz o limite de velocidade (distância de segurança de 7m)
+                if (distToCar < 7) limitSpeed = 0; 
+                else if (distToCar < 12) limitSpeed *= 0.4;
+            }
+
+            // 2. LÓGICA DE SEMÁFORO (Frenagem Localizada)
             let distToSema = 999;
             if (!c.isOpposite) {
-                // Para carros no mesmo sentido do jogador (Z diminui)
                 const ahead = this.semaphores.filter(s => s.position.z < c.mesh.position.z);
                 if (ahead.length > 0) {
                     ahead.sort((a,b) => b.position.z - a.position.z);
                     distToSema = c.mesh.position.z - ahead[0].position.z;
                 }
             } else {
-                // Para carros no sentido oposto (Z aumenta)
                 const ahead = this.semaphores.filter(s => s.position.z > c.mesh.position.z);
                 if (ahead.length > 0) {
                     ahead.sort((a,b) => a.position.z - b.position.z);
@@ -738,16 +753,15 @@ class Simulation {
                 }
             }
 
-            let targetSpeed = maxSpeed;
-            // Só freia se estiver a menos de 15~20 unidades do semáforo
+            let targetSpeed = limitSpeed;
             if (this.lightState === 'Red' && distToSema < 16 && distToSema > 0) {
                 targetSpeed = 0;
             } else if (this.lightState === 'Yellow' && distToSema < 25 && distToSema > 0) {
-                targetSpeed = maxSpeed * 0.3;
+                targetSpeed = limitSpeed * 0.3;
             }
 
-            // Suaviza a mudança de velocidade (Frenagem Gradual)
-            c.speed += (targetSpeed - c.speed) * 0.08;
+            // Aplicação suave da velocidade
+            c.speed += (targetSpeed - c.speed) * 0.1;
 
             c.mesh.position.z += c.isOpposite ? c.speed*2 : -c.speed*0.5;
            if (Math.abs(this.player.mesh.position.x - c.mesh.position.x) < 1.8 && Math.abs(this.player.mesh.position.z - c.mesh.position.z) < 3.8) {
