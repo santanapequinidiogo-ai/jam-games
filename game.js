@@ -15,9 +15,9 @@ const CONFIG = {
 };
 
 const TIPS = [
-    { title: "DISTÂNCIA DE FRENAGEM", text: "A 80km/h, sua distância de frenagem dobra em relação a 40km/h. Mantenha distância segura." },
-    { title: "PISTA MOLHADA", text: "Sob chuva, o atrito reduz em até 50%. Sua capacidade de manobrar é severamente afetada." },
-    { title: "PONTO CEGO", text: "No simulador 3D, lembre-se: o que está logo atrás ou ao lado pode ser invisível sem retrovisores." }
+    { title: "BRAKING DISTANCE", text: "At 80km/h, your braking distance doubles compared to 40km/h. Keep a safe distance." },
+    { title: "WET ROAD", text: "Under rain, friction reduces by up to 50%. Your steering ability is severely affected." },
+    { title: "BLIND SPOT", text: "In the 3D simulator, remember: what's right behind or beside you may be invisible without mirrors." }
 ];
 
 class Car {
@@ -125,17 +125,19 @@ class Simulation {
         
         this.player = new Car(this.scene, 0x4f46e5, true);
         
-        // Estado do Ciclo de Tráfego
-        this.lightState = 'Verde'; 
+        // Traffic Cycle State
+        this.lightState = 'Green'; 
         this.lightTimer = 0;
         this.yellowPenaltyApplied = false;
 
-        this.weather = 'Ensolarado';
+        this.weather = 'Sunny';
        this.weatherIntensity = 1;
         this.safeScore = 0;
         this.isPaused = true;
         this.controls = { up: false, down: false, left: false, right: false };
         this.rainParticles = null;
+        this.shownViolations = new Set();
+        this.shouldReload = false;
         
         this.setupEventListeners();
     }
@@ -379,6 +381,16 @@ class Simulation {
         if (e.key === 'ArrowDown') this.controls.down = s;
         if (e.key === 'ArrowLeft') this.controls.left = s;
         if (e.key === 'ArrowRight') this.controls.right = s;
+        
+        if (e.key === 'Enter' && s) {
+            const tipOverlay = document.getElementById('safety-tip-overlay');
+            const startScreen = document.getElementById('start-screen');
+            if (tipOverlay && !tipOverlay.classList.contains('hidden')) {
+                this.resume();
+            } else if (startScreen && !startScreen.classList.contains('hidden')) {
+                this.start();
+            }
+        }
     }
 
     onResize() {
@@ -389,16 +401,51 @@ class Simulation {
     }
 
     start() { document.getElementById('start-screen').classList.add('hidden'); this.isPaused = false; this.animate(); }
-    resume() { document.getElementById('safety-tip-overlay').classList.add('hidden'); this.traffic.forEach(t=>this.scene.remove(t.group)); this.traffic=[]; this.isPaused=false; requestAnimationFrame(()=>this.animate()); }
-    showTip(t) { this.isPaused = true; const tip = TIPS[Math.floor(Math.random()*TIPS.length)]; document.getElementById('tip-title').innerText = t; document.getElementById('tip-text').innerText = tip.text; document.getElementById('safety-tip-overlay').classList.remove('hidden'); }
+    
+    resume() { 
+        if (this.shouldReload) {
+            window.location.reload();
+            return;
+        }
+        document.getElementById('safety-tip-overlay').classList.add('hidden'); 
+        this.traffic.forEach(t=>this.scene.remove(t.group)); 
+        this.traffic=[]; 
+        this.isPaused=false; 
+        requestAnimationFrame(()=>this.animate()); 
+    }
+
+    showTip(t) { 
+        this.isPaused = true; 
+        const tip = TIPS[Math.floor(Math.random()*TIPS.length)]; 
+        document.getElementById('tip-title').innerText = t; 
+        document.getElementById('tip-text').innerText = tip.text; 
+        document.getElementById('safety-tip-overlay').classList.remove('hidden'); 
+    }
+
+    triggerViolation(id, scorePenalty, title) {
+        this.safeScore -= scorePenalty;
+        if (!this.shownViolations.has(id)) {
+            this.shownViolations.add(id);
+            this.showTip(title);
+        }
+    }
+
+    triggerCollision(title) {
+        this.isPaused = true;
+        this.shouldReload = true;
+        document.getElementById('tip-title').innerText = title;
+        document.getElementById('tip-text').innerText = "Critical impact detected. The simulation will restart.";
+        document.getElementById('resume-btn').innerText = "RESTART GAME";
+        document.getElementById('safety-tip-overlay').classList.remove('hidden');
+    }
 
     updateTrafficLights() {
-        this.lightTimer += 0.016; // Incremento aproximado por frame (60fps)
+        this.lightTimer += 0.016; // Approx. 60fps frame increment
         
         const lastState = this.lightState;
-        if (this.lightTimer < 10) this.lightState = 'Verde';
-        else if (this.lightTimer < 15) this.lightState = 'Amarelo'; // 5 segundos
-        else if (this.lightTimer < 25) this.lightState = 'Vermelho'; // 10 segundos
+        if (this.lightTimer < 10) this.lightState = 'Green';
+        else if (this.lightTimer < 15) this.lightState = 'Yellow'; // 5 seconds
+        else if (this.lightTimer < 25) this.lightState = 'Red'; // 10 seconds
         else {
             this.lightTimer = 0;
             this.yellowPenaltyApplied = false;
@@ -407,45 +454,48 @@ class Simulation {
         const HUD_LIGHT = document.getElementById('light-status'); 
         HUD_LIGHT.innerText = this.lightState;
         
-        // Coloração do texto do sinal
-        if (this.lightState === 'Verde') HUD_LIGHT.style.color = '#4ade80';
-        else if (this.lightState === 'Amarelo') HUD_LIGHT.style.color = '#fbbf24';
+        // Signal text coloring
+        if (this.lightState === 'Green') HUD_LIGHT.style.color = '#4ade80';
+        else if (this.lightState === 'Yellow') HUD_LIGHT.style.color = '#fbbf24';
         else HUD_LIGHT.style.color = '#ef4444';
 
-        // Atualiza cores visuais nos semáforos com maior intensidade para Bloom
+        // Update visual colors in semaphores with higher intensity for Bloom
         this.semaphores.forEach(s => {
             const { reds, yellows, greens } = s.userData;
-            reds.forEach(r => r.material.color.set(this.lightState === 'Vermelho' ? 0xff3333 : 0x111111));
-            yellows.forEach(y => y.material.color.set(this.lightState === 'Amarelo' ? 0xffff33 : 0x111111));
-            greens.forEach(g => g.material.color.set(this.lightState === 'Verde' ? 0x33ff33 : 0x111111));
+            reds.forEach(r => r.material.color.set(this.lightState === 'Red' ? 0xff3333 : 0x111111));
+            yellows.forEach(y => y.material.color.set(this.lightState === 'Yellow' ? 0xffff33 : 0x111111));
+            greens.forEach(g => g.material.color.set(this.lightState === 'Green' ? 0x33ff33 : 0x111111));
         });
 
-        // Penalidade de Amarelo apenas se houver semáforo visível (4 carros = 16m)
+        // Yellow penalty only if there's a visible semaphore (4 cars = 16m)
         const speed = this.player.speed * 200;
         const pZ = this.player.mesh.position.z;
         const isNearSemaphore = this.semaphores.some(s => {
             const dist = pZ - s.position.z; 
-            return dist > 0 && dist < 16; // Está nos próximos 16 metros (4 carros)
+            return dist > 0 && dist < 16;
         });
 
-        if (this.lightState === 'Amarelo' && isNearSemaphore && speed > 50 && !this.yellowPenaltyApplied) {
-            this.safeScore -= 50;
+        if (this.lightState === 'Yellow' && isNearSemaphore && speed > 50 && !this.yellowPenaltyApplied) {
             this.yellowPenaltyApplied = true;
-            this.showTip("INFRAÇÃO: Velocidade no Amarelo Próximo (-50 pts)");
+            this.triggerViolation("yellow_speed", 50, "VIOLATION: High speed on near Yellow (-50 pts)");
         }
     }
 
     updateWeather() {
-       const target = this.weather === 'Ensolarado' ? 1 : 0.3;
+       const target = this.weather === 'Sunny' ? 1 : 0.3;
         this.weatherIntensity += (target - this.weatherIntensity) * 0.02;
         this.roadMat.shininess = 10 + (1 - this.weatherIntensity) * 50;
         const sky = new THREE.Color().lerpColors(new THREE.Color(0x334155), new THREE.Color(0x87ceeb), this.weatherIntensity);
         this.scene.background = sky; this.scene.fog.color = sky;
-        if (Math.random() < 0.002) { this.weather = this.weather === 'Ensolarado' ? 'Chuva' : 'Ensolarado'; document.getElementById('weather').innerText = this.weather; this.toggleRain(); }
+        if (Math.random() < 0.002) { 
+            this.weather = this.weather === 'Sunny' ? 'Rainy' : 'Sunny'; 
+            document.getElementById('weather').innerText = this.weather; 
+            this.toggleRain(); 
+        }
     }
 
     toggleRain() {
-        if (this.weather === 'Chuva') {
+        if (this.weather === 'Rainy') {
             const geo = new THREE.BufferGeometry();
             const verts = []; for (let i=0; i<5000; i++) verts.push(Math.random()*40-20, Math.random()*20, Math.random()*100-50);
             geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
@@ -503,7 +553,9 @@ class Simulation {
             else c.speed = targetSpeed;
 
             c.mesh.position.z += c.isOpposite ? c.speed*2 : -c.speed*0.5;
-           if (Math.abs(this.player.mesh.position.x - c.mesh.position.x) < 1.8 && Math.abs(this.player.mesh.position.z - c.mesh.position.z) < 3.8) this.showTip("COLISÃO!");
+           if (Math.abs(this.player.mesh.position.x - c.mesh.position.x) < 1.8 && Math.abs(this.player.mesh.position.z - c.mesh.position.z) < 3.8) {
+               this.triggerCollision("COLLISION!");
+           }
             if (c.mesh.position.z - this.player.mesh.position.z > 50) { this.scene.remove(c.mesh); this.traffic.splice(idx, 1); }
         });
 
@@ -519,12 +571,11 @@ class Simulation {
                 p.mesh.position.z += p.speedZ;
             }
 
-            // Colisão com Pedestre (Atropelamento)
+            // Pedestrian Collision (Run over)
             const dx = Math.abs(this.player.mesh.position.x - p.mesh.position.x);
             const dz = Math.abs(this.player.mesh.position.z - p.mesh.position.z);
             if (dx < 1.2 && dz < 2.0) {
-                this.safeScore -= 500;
-                this.showTip("INFRAÇÃO GRAVÍSSIMA: Atropelamento! (-500 pts)");
+                this.triggerCollision("CRITICAL VIOLATION: Pedestrian Hit!");
             }
 
             if (p.mesh.position.z - this.player.mesh.position.z > 50) { 
@@ -539,12 +590,13 @@ class Simulation {
         
         this.semaphores.forEach(o => {
             const ud = o.userData;
-            // Se o sinal está Vermelho e o player acaba de passar pela linha (Crossing)
+            // If signal is Red and player just crossed the line
             if (!ud.passed && this.player.mesh.position.z < o.position.z) {
                 ud.passed = true;
-                if (this.lightState === 'Vermelho') {
-                    this.safeScore -= 200;
-                    this.showTip("INFRAÇÃO GRAVE: Furou o Sinal Vermelho (-200 pts)");
+                if (this.lightState === 'Red') {
+                    this.triggerViolation("red_light", 200, "SERIOUS VIOLATION: Ran a Red Light (-200 pts)");
+                } else if (this.lightState === 'Green') {
+                    this.safeScore += 200;
                 }
             }
 
