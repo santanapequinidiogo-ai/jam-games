@@ -279,13 +279,15 @@ class Simulation {
             this.scene.add(rightGroup);
             this.semaphores.push(rightGroup);
 
-            // 4. Faixa de Pedestres (Zebrada)
-            const stripeGeo = new THREE.PlaneGeometry(24, 1.5);
+            // 4. Faixa de Pedestres (Zebrada Vertical)
+            const stripeGeo = new THREE.PlaneGeometry(1.5, 6);
             const stripeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
-            for (let s = 0; s < 6; s++) {
+            for (let s = 0; s < 8; s++) {
                 const stripe = new THREE.Mesh(stripeGeo, stripeMat);
                 stripe.rotation.x = -Math.PI / 2;
-                stripe.position.set(0, 0.08, z + 5 + s * 2.5);
+                // Distribui as faixas ao longo da largura da pista (-9, -6, -3, 0, 3, 6, 9, etc)
+                const posX = -10.5 + s * 3; 
+                stripe.position.set(posX, 0.08, z + 8);
                 this.scene.add(stripe);
                 this.lines.push(stripe); // Adiciona ao pool de reciclagem
             }
