@@ -230,7 +230,7 @@ class Simulation {
         this.initStreetlights();
         this.initSemaphores(); // NOVO
 
-        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.01);
+        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.005); // Neblina mais suave (era 0.01)
     }
 
     initSemaphores() {
@@ -549,30 +549,45 @@ class Simulation {
                 this.traffic.push(c);
             }
         }
-        if (this.pedestrians.length < 15 && Math.random() < 0.08) {
+        if (this.pedestrians.length < 25 && Math.random() < 0.2) {
             const side = Math.random() > 0.5 ? 1 : -1;
             const swI = CONFIG.ROAD_WIDTH / 2;
             
-            // Tenta spawnar o pedestre perto de uma faixa (semáforo)
-            const nearSema = this.semaphores.find(s => s.position.z < this.player.mesh.position.z - 200);
+            // Busca o semáforo mais próximo à frente (Z negativo, então maior Z é mais perto)
+            const aheadSemas = this.semaphores.filter(s => s.position.z < this.player.mesh.position.z - 50);
+            aheadSemas.sort((a, b) => b.position.z - a.position.z);
+            const nearSema = aheadSemas[0];
+
             let pZ, willCross = false;
             
-            if (nearSema && Math.random() > 0.4) {
-                pZ = nearSema.position.z + 8; // Alinhado com a faixa de pedestres
+            // Spawn na faixa se estiver num alcance visível (até 400m)
+            if (nearSema && Math.abs(nearSema.position.z - this.player.mesh.position.z) < 400 && Math.random() > 0.3) {
+                pZ = nearSema.position.z + 8;
                 willCross = true;
             } else {
-                pZ = this.player.mesh.position.z - 350;
+                // Spawn aleatório na calçada bem mais perto do jogador (50 a 150m) para evitar que a neblina os esconda
+                pZ = this.player.mesh.position.z - 50 - Math.random() * 100;
             }
 
-            const pX = side * (swI + 1.5);
-            const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.5), new THREE.MeshPhongMaterial({ color: Math.random()*0xffffff }));
-            p.position.set(pX, 0.9, pZ); 
+            const pX = side * (swI + 1.2);
+            const pColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+            const p = new THREE.Mesh(
+                new THREE.BoxGeometry(0.7, 2.2, 0.7), 
+                new THREE.MeshStandardMaterial({ 
+                    color: pColor, 
+                    emissive: pColor, 
+                    emissiveIntensity: 0.8, // Brilho intenso para visibilidade
+                    metalness: 0.5,
+                    roughness: 0.2
+                })
+            );
+            p.position.set(pX, 1.1, pZ); 
             this.scene.add(p);
 
             this.pedestrians.push({ 
                 mesh: p, 
-                speedZ: willCross ? 0 : 0.1 + Math.random()*0.1,
-                speedX: 0.1, // ~4 segundos para atravessar (24 unidades / 0.1 por frame / 60fps)
+                speedZ: willCross ? 0 : 0.2 + Math.random() * 0.15,
+                speedX: 0.13, 
                 side: side,
                 willCross: willCross,
                 isCrossing: false
@@ -584,7 +599,7 @@ class Simulation {
         if (this.isPaused) return;
         requestAnimationFrame(() => this.animate());
         this.updateWeather();
-        this.updateTrafficLights(); // NOVO
+        this.updateTrafficLights();
         this.spawnTraffic();
         this.player.update(this.controls, this.weather);
         
