@@ -1,4 +1,4 @@
-# Own the Road - GGJ Safe Driving Sim
+# Safe Roads - GGJ Safe Driving Sim
 
 Este é um simulador de direção responsável desenvolvido para a **Global Game Jam** sob o tema "Own the Road".
 
