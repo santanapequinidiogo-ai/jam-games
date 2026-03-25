@@ -578,6 +578,11 @@ class Simulation {
             this.triggerWin();
         }
 
+        // Wrong Lane Penalty (Left of the yellow line)
+        if (this.player.mesh.position.x < 0) {
+            this.triggerViolation("wrong_lane", 0.55, "VIOLATION: Driving on the wrong side! (-100 pts every 3s)");
+        }
+
         this.traffic.forEach((c, idx) => {
             // Lógica de Semáforo para Carros
             let targetSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
