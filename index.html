@@ -17,13 +17,19 @@
         <div id="ui-overlay">
             <div class="hud">
                 <div class="stat-box">
-                    <span class="label">PONTUAÇÃO SEGURA</span>
-                    <span class="label">VELOCIDADE</span>
-                    <span id="speed" class="value">0 km/h</span>
+                    <div class="stat-group">
+                        <span class="label">VELOCIDADE</span>
+                        <span id="speed" class="value">0 km/h</span>
+                    </div>
+                    <div class="stat-group">
+                        <span class="label">PONTUAÇÃO SEGURA</span>
+                        <span id="safe-score" class="value">0</span>
+                    </div>
                 </div>
-                <div class="stat-item">CLIMA: <span id="weather">Ensolarado</span></div>
-                <div class="stat-item">SINAL: <span id="light-status">Verde</span></div>
-                <div class="stat-item">SCORE: <span id="safe-score">0</span></div>
+                <div class="status-bars">
+                    <div class="stat-item">CLIMA: <span id="weather">Ensolarado</span></div>
+                    <div class="stat-item">SINAL: <span id="light-status">Verde</span></div>
+                </div>
             </div>
 
             <div id="safety-tip-overlay" class="hidden">
@@ -48,8 +54,13 @@
             </div>
         </div>
     </div>
-    <!-- Three.js UMD (Global) para evitar erros de CORS ao abrir arquivo localmente -->
-    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-    <script src="game.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+    <script type="module" src="game.js"></script>
 </body>
 </html>

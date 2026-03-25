@@ -1,7 +1,4 @@
-/**
- * OWN THE ROAD 3D - GGJ Edition
- * Simulador de direção segura em 3D.
- */
+import * as THREE from 'three';
 
 const CONFIG = {
     ROAD_WIDTH: 24, 
@@ -9,7 +6,7 @@ const CONFIG = {
     SAFE_DISTANCE: 25, 
     SPEED_LIMIT: 100, 
     ACCEL: 0.25,
-    BRARE: 0.5,
+    BRAKE: 0.5,
     MAX_SPEED: 1.5,
     TURN_SPEED: 0.15 
 };
