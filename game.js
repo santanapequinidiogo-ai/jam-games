@@ -638,8 +638,8 @@ class Simulation {
         this.traffic.forEach((c, idx) => {
             // Lógica de Semáforo para Carros
             let targetSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
-            if (this.lightState === 'Amarelo') c.speed = targetSpeed * 0.4;
-            else if (this.lightState === 'Vermelho') c.speed = 0;
+            if (this.lightState === 'Yellow') c.speed = targetSpeed * 0.4;
+            else if (this.lightState === 'Red') c.speed = 0;
             else c.speed = targetSpeed;
 
             c.mesh.position.z += c.isOpposite ? c.speed*2 : -c.speed*0.5;
@@ -652,9 +652,10 @@ class Simulation {
         this.pedestrians.forEach((p, idx) => {
             if (p.willCross) {
                 const distToPed = this.player.mesh.position.z - p.mesh.position.z;
-                const isPlayerStopping = this.player.speed < 0.05 && distToPed > 8 && distToPed < 35;
+                // Detecção de cortesia: jogador parado a poucos metros (5 a 18 unidades) da faixa
+                const isPlayerStopping = this.player.speed < 0.05 && distToPed > 5 && distToPed < 18;
 
-                // Atravessa se: Sinal Vermelho OU Cortesia (Sinal Verde + Carro Parado) OU já está atravessando
+                // Atravessa se: Sinal Vermelho OU Cortesia (Sinal Verde + Carro Parado por perto) OU já está atravessando
                 if (this.lightState === 'Red' || (this.lightState === 'Green' && isPlayerStopping) || p.isCrossing) {
                     if (!p.isCrossing && this.lightState === 'Green' && isPlayerStopping) {
                         p.isCourtesy = true; 
