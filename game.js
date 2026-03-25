@@ -507,6 +507,15 @@ class Simulation {
         document.getElementById('safety-tip-overlay').classList.remove('hidden');
     }
 
+    showCourtesyFeedback() {
+        const toast = document.getElementById('courtesy-toast');
+        if (toast && toast.classList.contains('hidden')) {
+            toast.classList.remove('hidden');
+            this.safeScore += 200;
+            setTimeout(() => toast.classList.add('hidden'), 3500);
+        }
+    }
+
     updateWeather() {
        const target = this.weather === 'Sunny' ? 1 : 0.3;
         this.weatherIntensity += (target - this.weatherIntensity) * 0.02;
@@ -642,13 +651,24 @@ class Simulation {
 
         this.pedestrians.forEach((p, idx) => {
             if (p.willCross) {
-                // Só atravessa se o sinal estiver vermelho para o carro OU se já começou a atravessar
-                if (this.lightState === 'Red' || p.isCrossing) {
+                const distToPed = this.player.mesh.position.z - p.mesh.position.z;
+                const isPlayerStopping = this.player.speed < 0.05 && distToPed > 8 && distToPed < 35;
+
+                // Atravessa se: Sinal Vermelho OU Cortesia (Sinal Verde + Carro Parado) OU já está atravessando
+                if (this.lightState === 'Red' || (this.lightState === 'Green' && isPlayerStopping) || p.isCrossing) {
+                    if (!p.isCrossing && this.lightState === 'Green' && isPlayerStopping) {
+                        p.isCourtesy = true; 
+                    }
+                    
                     p.isCrossing = true;
                     p.mesh.position.x -= p.speedX * p.side;
                     
                     // Se terminou de atravessar, continua andando na calçada oposta
                     if (Math.abs(p.mesh.position.x) > CONFIG.ROAD_WIDTH/2 + 3) {
+                        if (p.isCourtesy) {
+                            this.showCourtesyFeedback();
+                            p.isCourtesy = false;
+                        }
                         p.willCross = false;
                         p.isCrossing = false;
                         p.speedZ = 0.1; 
