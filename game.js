@@ -717,11 +717,37 @@ class Simulation {
         }
 
         this.traffic.forEach((c, idx) => {
-            // Lógica de Semáforo para Carros
-            let targetSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
-            if (this.lightState === 'Yellow') c.speed = targetSpeed * 0.4;
-            else if (this.lightState === 'Red') c.speed = 0;
-            else c.speed = targetSpeed;
+            // Lógica de Semáforo para Carros (Frenagem Localizada e Suave)
+            let maxSpeed = c.baseSpeed || (c.baseSpeed = c.speed);
+            
+            // Identifica o semáforo mais próximo à frente deste carro específico
+            let distToSema = 999;
+            if (!c.isOpposite) {
+                // Para carros no mesmo sentido do jogador (Z diminui)
+                const ahead = this.semaphores.filter(s => s.position.z < c.mesh.position.z);
+                if (ahead.length > 0) {
+                    ahead.sort((a,b) => b.position.z - a.position.z);
+                    distToSema = c.mesh.position.z - ahead[0].position.z;
+                }
+            } else {
+                // Para carros no sentido oposto (Z aumenta)
+                const ahead = this.semaphores.filter(s => s.position.z > c.mesh.position.z);
+                if (ahead.length > 0) {
+                    ahead.sort((a,b) => a.position.z - b.position.z);
+                    distToSema = ahead[0].position.z - c.mesh.position.z;
+                }
+            }
+
+            let targetSpeed = maxSpeed;
+            // Só freia se estiver a menos de 15~20 unidades do semáforo
+            if (this.lightState === 'Red' && distToSema < 16 && distToSema > 0) {
+                targetSpeed = 0;
+            } else if (this.lightState === 'Yellow' && distToSema < 25 && distToSema > 0) {
+                targetSpeed = maxSpeed * 0.3;
+            }
+
+            // Suaviza a mudança de velocidade (Frenagem Gradual)
+            c.speed += (targetSpeed - c.speed) * 0.08;
 
             c.mesh.position.z += c.isOpposite ? c.speed*2 : -c.speed*0.5;
            if (Math.abs(this.player.mesh.position.x - c.mesh.position.x) < 1.8 && Math.abs(this.player.mesh.position.z - c.mesh.position.z) < 3.8) {
