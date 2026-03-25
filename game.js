@@ -156,6 +156,13 @@ class Simulation {
         this.shownViolations = new Set();
         this.shouldReload = false;
         
+        // Phone Distraction System
+        this.callTriggers = [1500, 3800, 4300];
+        this.isPhoneRinging = false;
+        this.isCallActive = false;
+        this.audioCtx = null;
+        this.ringInterval = null;
+
         this.setupEventListeners();
     }
 
@@ -391,6 +398,11 @@ class Simulation {
         window.onresize = () => this.onResize();
         document.getElementById('start-btn').onclick = () => this.start();
         document.getElementById('resume-btn').onclick = () => this.resume();
+
+        // Call Handlers
+        document.getElementById('accept-call').onclick = () => this.handleCall(true);
+        document.getElementById('reject-call').onclick = () => this.handleCall(false);
+        document.getElementById('hangup-btn').onclick = () => this.endCall();
     }
 
     handleKeys(e, s) {
@@ -508,14 +520,75 @@ class Simulation {
     }
 
     showCourtesyFeedback() {
+        this.showFloatingMessage("THANK YOU!", "Courtesy Bonus: +200 pts", "💙");
+        this.safeScore += 200;
+    }
+
+    showFloatingMessage(title, subtitle, icon) {
         const balloon = document.getElementById('courtesy-balloon');
-        if (balloon && balloon.classList.contains('hidden')) {
+        if (balloon) {
+            balloon.querySelector('.icon').innerText = icon;
+            balloon.querySelector('.title').innerText = title;
+            balloon.querySelector('.subtitle').innerText = subtitle;
             balloon.classList.remove('hidden');
-            this.safeScore += 200;
-            setTimeout(() => {
-                if (balloon) balloon.classList.add('hidden');
-            }, 4000);
+            // Oculta após um tempo (debounce simples)
+            if (this.messageTimeout) clearTimeout(this.messageTimeout);
+            this.messageTimeout = setTimeout(() => balloon.classList.add('hidden'), 4000);
         }
+    }
+
+    // PHONE MECHANIC METHODS
+    triggerIncomingCall() {
+        if (this.isPhoneRinging || this.isCallActive) return;
+        this.isPhoneRinging = true;
+        document.getElementById('phone-container').classList.remove('hidden');
+        this.playRinger();
+    }
+
+    playRinger() {
+        try {
+            if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const playTone = () => {
+                const osc = this.audioCtx.createOscillator();
+                const gain = this.audioCtx.createGain();
+                osc.connect(gain); gain.connect(this.audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(580, this.audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(780, this.audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.05, this.audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(this.audioCtx.currentTime + 0.5);
+            };
+            playTone();
+            this.ringInterval = setInterval(playTone, 1000);
+        } catch(e) { console.error("Audio error", e); }
+    }
+
+    stopRinger() {
+        if (this.ringInterval) clearInterval(this.ringInterval);
+        this.isPhoneRinging = false;
+    }
+
+    handleCall(accepted) {
+        this.stopRinger();
+        document.getElementById('phone-container').classList.add('hidden');
+        
+        if (accepted) {
+            this.isCallActive = true;
+            this.safeScore -= 300;
+            document.getElementById('distraction-warning').classList.remove('hidden');
+            // Auto hangup after 5s if player doesn't click
+            setTimeout(() => this.endCall(), 5000);
+        } else {
+            this.safeScore += 200;
+            this.showFloatingMessage("SAFETY FIRST!", "Responsible Driver: +200 pts", "📱");
+        }
+    }
+
+    endCall() {
+        if (!this.isCallActive) return;
+        this.isCallActive = false;
+        document.getElementById('distraction-warning').classList.add('hidden');
     }
 
     updateWeather() {
@@ -630,6 +703,12 @@ class Simulation {
 
         if (this.safeScore >= 5000) {
             this.triggerWin();
+        }
+
+        // Check for Call Triggers
+        if (this.callTriggers.length > 0 && this.safeScore >= this.callTriggers[0]) {
+            this.callTriggers.shift(); // Remove o primeiro gatilho
+            this.triggerIncomingCall();
         }
 
         // Wrong Lane Penalty (Left of the yellow line)

@@ -277,3 +277,127 @@ button:hover {
     0% { transform: scale(0.5) translateY(40px); opacity: 0; }
     100% { transform: scale(1) translateY(0); opacity: 1; }
 }
+
+/* Phone Distraction UI */
+#phone-container {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    width: 200px;
+    background: #000;
+    border: 3px solid #222;
+    border-radius: 2rem;
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+    z-index: 300;
+    pointer-events: auto;
+    animation: phoneSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes phoneSlideIn {
+    from { transform: translateY(120%) rotate(10deg); opacity: 0; }
+    to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+
+.contact-avatar {
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    border-radius: 50%;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.contact-name {
+    font-weight: 800;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.call-status {
+    font-size: 0.7rem;
+    color: #4ade80;
+    margin-bottom: 1.5rem;
+    letter-spacing: 1px;
+    animation: pulse 1s infinite;
+}
+
+.phone-actions {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.call-btn {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.call-btn:hover { transform: scale(1.2); }
+.call-btn.accept { background: var(--safe); color: white; }
+.call-btn.reject { background: var(--danger); color: white; }
+
+/* Distraction Warning Balloon (Center) */
+#distraction-warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80vw;
+    height: 70vh;
+    background: rgba(15, 23, 42, 0.99);
+    backdrop-filter: blur(50px);
+    border: 8px solid var(--danger);
+    border-radius: 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem;
+    z-index: 1000;
+    pointer-events: auto;
+    box-shadow: 0 0 200px rgba(239, 68, 68, 0.4);
+    animation: dangerRing 0.5s infinite alternate;
+}
+
+@keyframes dangerRing {
+    from { border-color: var(--danger); }
+    to { border-color: #ff8888; }
+}
+
+#distraction-warning h2 {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    color: var(--danger);
+    margin-bottom: 2rem;
+    letter-spacing: -2px;
+}
+
+#distraction-warning p {
+    font-size: 1.4rem;
+    max-width: 600px;
+    line-height: 1.5;
+    color: #cbd5e1;
+    margin-bottom: 3rem;
+}
+
+#distraction-warning .hangup-btn {
+    background: var(--danger);
+    font-size: 1.3rem;
+    font-weight: 800;
+    padding: 1.2rem 3rem;
+}
