@@ -738,8 +738,9 @@ class Simulation {
 
                 // Atravessa se: Sinal Vermelho OU Cortesia (Sinal Verde + Carro Parado por perto) OU já está atravessando
                 if (this.lightState === 'Red' || (this.lightState === 'Green' && isPlayerStopping) || p.isCrossing) {
-                    if (!p.isCrossing && this.lightState === 'Green' && isPlayerStopping) {
+                    if (!p.isCrossing && this.lightState === 'Green' && isPlayerStopping && !this.isProcessingCourtesy) {
                         p.isCourtesy = true; 
+                        this.isProcessingCourtesy = true; // Impede que múltiplos pedestres deem bônus ao mesmo tempo
                     }
                     
                     p.isCrossing = true;
@@ -750,6 +751,8 @@ class Simulation {
                         if (p.isCourtesy) {
                             this.showCourtesyFeedback();
                             p.isCourtesy = false;
+                            // Reset do flag de cortesia após um tempo para permitir o próximo semáforo
+                            setTimeout(() => { this.isProcessingCourtesy = false; }, 5000);
                         }
                         p.willCross = false;
                         p.isCrossing = false;
@@ -779,13 +782,13 @@ class Simulation {
         
         this.semaphores.forEach(o => {
             const ud = o.userData;
-            // If signal is Red and player just crossed the line
+            // Detecta quando o carro passa pela linha do semáforo
             if (!ud.passed && this.player.mesh.position.z < o.position.z) {
                 ud.passed = true;
                 if (this.lightState === 'Red') {
                     this.triggerViolation("red_light", 200, "SERIOUS VIOLATION: Ran a Red Light (-200 pts)");
                 } else if (this.lightState === 'Green') {
-                    this.safeScore += 200;
+                    // Removido o bônus automático de +200 no verde para manter o equilíbrio
                 }
             }
 
