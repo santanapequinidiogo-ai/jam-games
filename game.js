@@ -435,7 +435,7 @@ class Simulation {
         this.shouldReload = true;
         document.getElementById('tip-title').innerText = title;
         document.getElementById('tip-text').innerText = "Critical impact detected. The simulation will restart.";
-        document.getElementById('resume-btn').innerText = "RESTART GAME";
+        document.getElementById('resume-btn').innerText = "[ENTER] RESTART GAME";
         document.getElementById('safety-tip-overlay').classList.remove('hidden');
     }
 
@@ -475,10 +475,19 @@ class Simulation {
             return dist > 0 && dist < 16;
         });
 
-        if (this.lightState === 'Yellow' && isNearSemaphore && speed > 50 && !this.yellowPenaltyApplied) {
+        if (this.lightState === 'Yellow' && isNearSemaphore && speed > 100 && !this.yellowPenaltyApplied) {
             this.yellowPenaltyApplied = true;
-            this.triggerViolation("yellow_speed", 50, "VIOLATION: High speed on near Yellow (-50 pts)");
+            this.triggerViolation("yellow_speed", 50, "VIOLATION: High speed on near Yellow (>100 km/h) (-50 pts)");
         }
+    }
+
+    triggerWin() {
+        this.isPaused = true;
+        this.shouldReload = true;
+        document.getElementById('tip-title').innerText = "GOOD END: ROAD MASTER";
+        document.getElementById('tip-text').innerText = "Congratulations! You've proven that safety and skill go hand in hand. Every cautious decision you make behind the wheel protects a life. Keep the road safe for everyone!";
+        document.getElementById('resume-btn').innerText = "[ENTER] PLAY AGAIN";
+        document.getElementById('safety-tip-overlay').classList.remove('hidden');
     }
 
     updateWeather() {
@@ -543,7 +552,17 @@ class Simulation {
         
         const speed = Math.floor(this.player.speed*200);
         document.getElementById('speed').innerText = `${speed} km/h`;
-        if (speed > CONFIG.SPEED_LIMIT) this.safeScore -= 0.1;
+        
+        // Speed Scoring Logic
+        if (speed >= 120 && speed < 140) {
+            this.safeScore += 0.2; // Reward for maintaining high controlled speed
+        } else if (speed >= 140) {
+            this.safeScore -= 0.5; // Penalty for overspeeding
+        }
+
+        if (this.safeScore >= 1000) {
+            this.triggerWin();
+        }
 
         this.traffic.forEach((c, idx) => {
             // Lógica de Semáforo para Carros
