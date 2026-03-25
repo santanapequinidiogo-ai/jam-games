@@ -47,14 +47,20 @@ class Car {
         this.group.add(cabin);
 
         // Rodas
+        this.wheels = [];
         const wGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 12);
         const wMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
-        const wPos = [[-carW/2-0.1, 0.4, 1.2], [carW/2+0.1, 0.4, 1.2], [-carW/2-0.1, 0.4, -1.2], [carW/2+0.1, 0.4, -1.2]];
+        // [-X, Y, -Z] são as frontais no nosso sistema (Headlights estão em -2)
+        const wPos = [
+            [-carW/2-0.1, 0.4, 1.2], [carW/2+0.1, 0.4, 1.2], // Traseiras
+            [-carW/2-0.1, 0.4, -1.2], [carW/2+0.1, 0.4, -1.2] // Frontais
+        ];
         wPos.forEach(p => {
             const w = new THREE.Mesh(wGeo, wMat);
             w.rotation.z = Math.PI/2;
             w.position.set(...p);
             this.group.add(w);
+            this.wheels.push(w);
         });
 
         // Luzes
@@ -79,11 +85,22 @@ class Car {
         if (!this.isPlayer) return;
         if (controls.up) this.speed += CONFIG.ACCEL * 0.01;
         if (controls.down) this.speed -= CONFIG.BRAKE * 0.01;
-        this.speed *= (weather === 'Chuva' ? 0.997 : 0.999);
+        this.speed *= (weather === 'Rainy' ? 0.997 : 0.999);
         this.speed = Math.max(0, Math.min(this.speed, CONFIG.MAX_SPEED));
         
-        if (controls.left) this.mesh.position.x -= CONFIG.TURN_SPEED;
-        if (controls.right) this.mesh.position.x += CONFIG.TURN_SPEED;
+        // Steering lock when stationary
+        const steerDir = (controls.right ? 1 : 0) - (controls.left ? 1 : 0);
+        if (this.speed > 0.05) {
+            this.mesh.position.x += steerDir * CONFIG.TURN_SPEED;
+        }
+        
+        // Wheel Animations
+        const turnAngle = steerDir * 0.4;
+        this.wheels[2].rotation.y += (turnAngle - this.wheels[2].rotation.y) * 0.1; // Front Left
+        this.wheels[3].rotation.y += (turnAngle - this.wheels[3].rotation.y) * 0.1; // Front Right
+        
+        // Rolling animation (cylinders rotated PI/2 on Z, so X is roll)
+        this.wheels.forEach(w => w.rotation.x += this.speed * 0.8);
         
         const limit = (CONFIG.ROAD_WIDTH / 2) - 1.5;
         this.mesh.position.x = Math.max(-limit, Math.min(this.mesh.position.x, limit));
