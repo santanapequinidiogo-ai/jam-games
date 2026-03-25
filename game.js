@@ -550,20 +550,31 @@ class Simulation {
             }
         }
         if (this.pedestrians.length < 15 && Math.random() < 0.08) {
-            const side = Math.random() > 0.5 ? 1 : -1, swI = CONFIG.ROAD_WIDTH / 2;
-            const pX = side * (swI + Math.random() * 5.5), pZ = this.player.mesh.position.z - 350;
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const swI = CONFIG.ROAD_WIDTH / 2;
+            
+            // Tenta spawnar o pedestre perto de uma faixa (semáforo)
+            const nearSema = this.semaphores.find(s => s.position.z < this.player.mesh.position.z - 200);
+            let pZ, willCross = false;
+            
+            if (nearSema && Math.random() > 0.4) {
+                pZ = nearSema.position.z + 8; // Alinhado com a faixa de pedestres
+                willCross = true;
+            } else {
+                pZ = this.player.mesh.position.z - 350;
+            }
+
+            const pX = side * (swI + 1.5);
             const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.5), new THREE.MeshPhongMaterial({ color: Math.random()*0xffffff }));
             p.position.set(pX, 0.9, pZ); 
             this.scene.add(p);
 
-            // Verifica se está perto de um semáforo para poder atravessar
-            const isNearSemaphore = this.semaphores.some(s => Math.abs(s.position.z - pZ) < 15);
             this.pedestrians.push({ 
                 mesh: p, 
-                speedZ: 0.1 + Math.random()*0.1,
-                speedX: 0.15,
+                speedZ: willCross ? 0 : 0.1 + Math.random()*0.1,
+                speedX: 0.1, // ~4 segundos para atravessar (24 unidades / 0.1 por frame / 60fps)
                 side: side,
-                willCross: isNearSemaphore && Math.random() > 0.5,
+                willCross: willCross,
                 isCrossing: false
             });
         }
@@ -615,22 +626,28 @@ class Simulation {
         });
 
         this.pedestrians.forEach((p, idx) => {
-            // Lógica de Travessia
-            if (this.lightState === 'Vermelho' && p.willCross) {
-                p.isCrossing = true;
-                p.mesh.position.x -= p.speedX * p.side; // Move em direção ao centro e outro lado
-                
-                // Se atravessou tudo, para de atravessar
-                if (Math.abs(p.mesh.position.x) > CONFIG.ROAD_WIDTH/2 + 5) p.willCross = false;
+            if (p.willCross) {
+                // Só atravessa se o sinal estiver vermelho para o carro OU se já começou a atravessar
+                if (this.lightState === 'Red' || p.isCrossing) {
+                    p.isCrossing = true;
+                    p.mesh.position.x -= p.speedX * p.side;
+                    
+                    // Se terminou de atravessar, continua andando na calçada oposta
+                    if (Math.abs(p.mesh.position.x) > CONFIG.ROAD_WIDTH/2 + 3) {
+                        p.willCross = false;
+                        p.isCrossing = false;
+                        p.speedZ = 0.1; 
+                    }
+                }
             } else {
                 p.mesh.position.z += p.speedZ;
             }
 
-            // Pedestrian Collision (Run over)
+            // Colisão com pedestre (Atropelamento)
             const dx = Math.abs(this.player.mesh.position.x - p.mesh.position.x);
             const dz = Math.abs(this.player.mesh.position.z - p.mesh.position.z);
-            if (dx < 1.2 && dz < 2.0) {
-                this.triggerCollision("CRITICAL VIOLATION: Pedestrian Hit!");
+            if (dx < 1.4 && dz < 2.0) {
+                this.triggerCollision("FATAL ACCIDENT: Pedestrian Hit!");
             }
 
             if (p.mesh.position.z - this.player.mesh.position.z > 50) { 
