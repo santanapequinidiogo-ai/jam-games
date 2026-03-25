@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 const CONFIG = {
     ROAD_WIDTH: 24, 
@@ -102,6 +105,13 @@ class Simulation {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.container.appendChild(this.renderer.domElement);
+
+        // BLOOM SETUP
+        const renderScene = new RenderPass(this.scene, this.camera);
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        this.composer = new EffectComposer(this.renderer);
+        this.composer.addPass(renderScene);
+        this.composer.addPass(this.bloomPass);
 
         this.traffic = [];
         this.pedestrians = [];
@@ -375,6 +385,7 @@ class Simulation {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.composer.setSize(window.innerWidth, window.innerHeight);
     }
 
     start() { document.getElementById('start-screen').classList.add('hidden'); this.isPaused = false; this.animate(); }
@@ -401,12 +412,12 @@ class Simulation {
         else if (this.lightState === 'Amarelo') HUD_LIGHT.style.color = '#fbbf24';
         else HUD_LIGHT.style.color = '#ef4444';
 
-        // Atualiza cores visuais nos semáforos
+        // Atualiza cores visuais nos semáforos com maior intensidade para Bloom
         this.semaphores.forEach(s => {
             const { reds, yellows, greens } = s.userData;
-            reds.forEach(r => r.material.color.set(this.lightState === 'Vermelho' ? 0xff0000 : 0x222222));
-            yellows.forEach(y => y.material.color.set(this.lightState === 'Amarelo' ? 0xffff00 : 0x222222));
-            greens.forEach(g => g.material.color.set(this.lightState === 'Verde' ? 0x00ff00 : 0x222222));
+            reds.forEach(r => r.material.color.set(this.lightState === 'Vermelho' ? 0xff3333 : 0x111111));
+            yellows.forEach(y => y.material.color.set(this.lightState === 'Amarelo' ? 0xffff33 : 0x111111));
+            greens.forEach(g => g.material.color.set(this.lightState === 'Verde' ? 0x33ff33 : 0x111111));
         });
 
         // Penalidade de Amarelo apenas se houver semáforo visível (4 carros = 16m)
@@ -521,7 +532,7 @@ class Simulation {
         this.camera.position.set(this.player.mesh.position.x * 0.5, 5, pZ + 15);
         this.camera.lookAt(this.player.mesh.position.x, 2, pZ - 10);
         document.getElementById('safe-score').innerText = Math.floor(this.safeScore);
-        this.renderer.render(this.scene, this.camera);
+        this.composer.render();
     }
 }
 
