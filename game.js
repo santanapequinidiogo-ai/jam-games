@@ -508,11 +508,13 @@ class Simulation {
     }
 
     showCourtesyFeedback() {
-        const toast = document.getElementById('courtesy-toast');
-        if (toast && toast.classList.contains('hidden')) {
-            toast.classList.remove('hidden');
+        const balloon = document.getElementById('courtesy-balloon');
+        if (balloon && balloon.classList.contains('hidden')) {
+            balloon.classList.remove('hidden');
             this.safeScore += 200;
-            setTimeout(() => toast.classList.add('hidden'), 3500);
+            setTimeout(() => {
+                if (balloon) balloon.classList.add('hidden');
+            }, 4000);
         }
     }
 
