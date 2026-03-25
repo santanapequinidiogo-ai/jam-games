@@ -443,9 +443,9 @@ class Simulation {
         this.lightTimer += 0.016; // Approx. 60fps frame increment
         
         const lastState = this.lightState;
-        if (this.lightTimer < 10) this.lightState = 'Green';
-        else if (this.lightTimer < 15) this.lightState = 'Yellow'; // 5 seconds
-        else if (this.lightTimer < 25) this.lightState = 'Red'; // 10 seconds
+        if (this.lightTimer < 15) this.lightState = 'Green'; // 15 seconds
+        else if (this.lightTimer < 20) this.lightState = 'Yellow'; // 5 seconds
+        else if (this.lightTimer < 35) this.lightState = 'Red'; // 15 seconds
         else {
             this.lightTimer = 0;
             this.yellowPenaltyApplied = false;
@@ -484,8 +484,8 @@ class Simulation {
     triggerWin() {
         this.isPaused = true;
         this.shouldReload = true;
-        document.getElementById('tip-title').innerText = "GOOD END: ROAD MASTER";
-        document.getElementById('tip-text').innerText = "Congratulations! You've proven that safety and skill go hand in hand. Every cautious decision you make behind the wheel protects a life. Keep the road safe for everyone!";
+        document.getElementById('tip-title').innerText = "ROAD LEGEND: 5000 POINTS!";
+        document.getElementById('tip-text').innerText = "Incredible! You've reached the master goal. Safety, control, and patience are your best tools. Remember: one safe driver can change the entire flow of a city. Keep up the good work!";
         document.getElementById('resume-btn').innerText = "[ENTER] PLAY AGAIN";
         document.getElementById('safety-tip-overlay').classList.remove('hidden');
     }
@@ -514,13 +514,23 @@ class Simulation {
     }
 
     spawnTraffic() {
-        if (this.traffic.length < 3 && Math.random() < 0.04) {
+        if (this.traffic.length < 10 && Math.random() < 0.1) {
             const isO = Math.random() > 0.5, lId = Math.random() > 0.5 ? 1 : 2;
             const x = isO ? (lId === 1 ? -3 : -9) : (lId === 1 ? 3 : 9);
-            const c = new Car(this.scene, Math.random() * 0xffffff);
-            c.mesh.position.set(x, 0, this.player.mesh.position.z - 450);
-            if (isO) { c.speed = 0.5; c.isOpposite = true; c.mesh.rotation.y = Math.PI; } else { c.speed = 0.8; }
-            this.traffic.push(c);
+            const z = this.player.mesh.position.z - 450;
+            
+            // Overlap Prevention Logic
+            const isColliding = this.traffic.some(c => 
+                Math.abs(c.mesh.position.x - x) < 1.0 && 
+                Math.abs(c.mesh.position.z - z) < 20
+            );
+
+            if (!isColliding) {
+                const c = new Car(this.scene, Math.random() * 0xffffff);
+                c.mesh.position.set(x, 0, z);
+                if (isO) { c.speed = 0.5; c.isOpposite = true; c.mesh.rotation.y = Math.PI; } else { c.speed = 0.8; }
+                this.traffic.push(c);
+            }
         }
         if (this.pedestrians.length < 15 && Math.random() < 0.08) {
             const side = Math.random() > 0.5 ? 1 : -1, swI = CONFIG.ROAD_WIDTH / 2;
@@ -551,16 +561,20 @@ class Simulation {
         this.player.update(this.controls, this.weather);
         
         const speed = Math.floor(this.player.speed*200);
-        document.getElementById('speed').innerText = `${speed} km/h`;
+        const speedHUD = document.getElementById('speed');
+        speedHUD.innerText = `${speed} km/h`;
+        
+        // Velocity Color Feedback
+        speedHUD.style.color = (speed > 120) ? '#ef4444' : '#ffffff';
         
         // Speed Scoring Logic
-        if (speed >= 120 && speed < 140) {
-            this.safeScore += 0.2; // Reward for maintaining high controlled speed
-        } else if (speed >= 140) {
-            this.safeScore -= 0.5; // Penalty for overspeeding
+        if (speed > 0 && speed <= 120) {
+            this.safeScore += 0.15; // Consistent reward for safe speeds
+        } else if (speed > 120) {
+            this.safeScore -= 0.6; // Heavy penalty for speeding
         }
 
-        if (this.safeScore >= 1000) {
+        if (this.safeScore >= 5000) {
             this.triggerWin();
         }
 
