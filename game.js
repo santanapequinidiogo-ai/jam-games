@@ -46,11 +46,16 @@ class Car {
         );
         cabin.position.set(0, carH/2 + 0.8 + cabinH/2, 0.2);
         this.group.add(cabin);
-
-        // Rodas
+        // Rodas (Agora com aros de liga-leve prateados para alto contraste)
         this.wheels = [];
         const wGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 12);
-        const wMat = new THREE.MeshPhongMaterial({ color: 0x111111 });
+        // Borracha do pneu (mais clara, para não fundir com a sombra do carro)
+        const wMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9 });
+        
+        // Geometria secundária: Aros/Calotas de metal brilhante
+        const rimGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.52, 12);
+        const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 });
+
         // [-X, Y, -Z] são as frontais no nosso sistema (Headlights estão em -2)
         const wPos = [
             [-carW/2-0.1, 0.4, 1.2], [carW/2+0.1, 0.4, 1.2], // Traseiras
@@ -58,8 +63,11 @@ class Car {
         ];
         wPos.forEach(p => {
             const w = new THREE.Mesh(wGeo, wMat);
-            w.rotation.z = Math.PI/2;
-            w.position.set(...p);
+            const rim = new THREE.Mesh(rimGeo, rimMat); // Cria a calota
+            w.add(rim); // Anexa a calota ao pneu (assim ela gira e se move com a roda)
+            
+            w.position.set(p[0], p[1], p[2]);
+            w.rotation.z = Math.PI / 2; // Gira o cilindro para rolar no eixo X
             this.group.add(w);
             this.wheels.push(w);
         });
@@ -145,7 +153,7 @@ class Simulation {
     constructor() {
         this.container = document.getElementById('three-container');
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x050510); // Céu noturno escuro
+        this.scene.background = new THREE.Color(0x87ceeb); // Dia Ensolarado (Céu Azul Claro)
         
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -204,10 +212,10 @@ class Simulation {
     }
 
     initLights() {
-        // Restaurando a visibilidade global: luz ambiente e luz difusa elevadas
-        this.scene.add(new THREE.AmbientLight(0xffffff, 1.2)); // Volta a ser branca e bem forte
-        this.sunLight = new THREE.DirectionalLight(0xfff0dd, 0.8); // Ilumina bem os contornos dos objetos
-        this.sunLight.position.set(50, 100, 50);
+        // Iluminação Global Diurna
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.9)); // Mais claro em geral
+        this.sunLight = new THREE.DirectionalLight(0xffffee, 1.8); // Sol forte direcionado
+        this.sunLight.position.set(50, 200, 50);
         this.sunLight.castShadow = true;
         this.scene.add(this.sunLight);
     }
@@ -295,7 +303,7 @@ class Simulation {
         this.initSemaphores(); 
         this.initSpeedSigns();
 
-        this.scene.fog = new THREE.FogExp2(0x050510, 0.007); // Neblina noturna escura
+        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.005); // Neblina clara diurna
     }
 
     initSemaphores() {
@@ -741,12 +749,19 @@ class Simulation {
     }
 
     updateWeather() {
-       const target = this.weather === 'Sunny' ? 1 : 0.3;
-        this.weatherIntensity += (target - this.weatherIntensity) * 0.02;
-        this.roadMat.shininess = 10 + (1 - this.weatherIntensity) * 50;
-        const sky = new THREE.Color().lerpColors(new THREE.Color(0x334155), new THREE.Color(0x87ceeb), this.weatherIntensity);
-        this.scene.background = sky; this.scene.fog.color = sky;
-        if (Math.random() < 0.002) { 
+       const target = this.weather === 'Sunny' ? 1 : 0.0;
+        this.weatherIntensity += (target - this.weatherIntensity) * 0.01;
+        
+        // Asfalto fica molhado (menos rugoso) quando chove
+        this.roadMat.roughness = 0.6 - (1 - this.weatherIntensity) * 0.3;
+        
+        // Trilha céu de Dia: Dia Nublado/Cinzento (0x64748b) <-> Limpo (0x87ceeb)
+        const sky = new THREE.Color().lerpColors(new THREE.Color(0x64748b), new THREE.Color(0x87ceeb), this.weatherIntensity);
+        this.scene.background = sky; 
+        this.scene.fog.color = sky;
+        
+        // Chance de trocar de clima: baixada de 0.002 (a cada ~8s) para 0.0002 (a cada ~1,5 minutos)
+        if (Math.random() < 0.0002) { 
             this.weather = this.weather === 'Sunny' ? 'Rainy' : 'Sunny'; 
             document.getElementById('weather').innerText = this.weather; 
             this.toggleRain(); 
