@@ -83,13 +83,14 @@ class Car {
         this.pitch = 0; // Inclinação do carro (frenagem)
         this.isPlayer = isPlayer;
 
-        // Faróis Dianteiros (Dinâmicos)
+        // Faróis Dianteiros (Dinâmicos e muito mais potentes)
         if (isPlayer) {
             this.headlights = [];
             [-1, 1].forEach(side => {
-                const sl = new THREE.SpotLight(0xffffff, 5, 120, Math.PI/5, 0.5, 1);
-                sl.position.set(side * (carW/2-0.4), carH/2, -2); // 4/2 = 2
-                sl.target.position.set(side * (carW/2-0.4), 0, -25);
+                // Intensidade elevada para 60 para criar um cone óbvio no asfalto molhado
+                const sl = new THREE.SpotLight(0xffffee, 60, 150, Math.PI/4, 0.5, 0.5);
+                sl.position.set(side * (carW/2-0.2), carH/2 + 0.5, -2); 
+                sl.target.position.set(side * (carW/2-0.2), -0.5, -20); // Aponta um pouco mais para baixo no chão
                 sl.castShadow = true;
                 this.group.add(sl, sl.target);
                 this.headlights.push(sl);
@@ -199,8 +200,9 @@ class Simulation {
     }
 
     initLights() {
-        this.scene.add(new THREE.AmbientLight(0x223355, 0.6)); // Luz ambiente noturna azulada
-        this.sunLight = new THREE.DirectionalLight(0xffaa55, 0.4); // Luz da lua / cidade difusa
+        // Restaurando a visibilidade global: luz ambiente e luz difusa elevadas
+        this.scene.add(new THREE.AmbientLight(0xffffff, 1.2)); // Volta a ser branca e bem forte
+        this.sunLight = new THREE.DirectionalLight(0xfff0dd, 0.8); // Ilumina bem os contornos dos objetos
         this.sunLight.position.set(50, 100, 50);
         this.sunLight.castShadow = true;
         this.scene.add(this.sunLight);
