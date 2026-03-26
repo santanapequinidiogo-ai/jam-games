@@ -11,7 +11,6 @@ const CONFIG = {
     ACCEL: 0.25,
     BRAKE: 0.5,
     MAX_SPEED: 1.5,
-    MIN_SPEED: 0.75, // 150 km/h (0.75 * 200)
     TURN_SPEED: 0.15 
 };
 
@@ -87,7 +86,7 @@ class Car {
         if (controls.up) this.speed += CONFIG.ACCEL * 0.01;
         if (controls.down) this.speed -= CONFIG.BRAKE * 0.01;
         this.speed *= (weather === 'Rainy' ? 0.997 : 0.999);
-        this.speed = Math.max(CONFIG.MIN_SPEED, Math.min(this.speed, CONFIG.MAX_SPEED));
+        this.speed = Math.max(0, Math.min(this.speed, CONFIG.MAX_SPEED));
         
         // Steering lock when stationary
         const steerDir = (controls.right ? 1 : 0) - (controls.left ? 1 : 0);
@@ -692,12 +691,12 @@ class Simulation {
         speedHUD.innerText = `${speed} km/h`;
         
         // Velocity Color Feedback
-        speedHUD.style.color = (speed > 120) ? '#ef4444' : '#ffffff';
+        speedHUD.style.color = (speed > 150) ? '#ef4444' : '#ffffff';
         
         // Speed Scoring Logic
-        if (speed > 0 && speed <= 120) {
+        if (speed > 0 && speed <= 150) {
             this.safeScore += 0.15; // Consistent reward for safe speeds
-        } else if (speed > 120) {
+        } else if (speed > 150) {
             this.safeScore -= 0.6; // Heavy penalty for speeding
         }
 
