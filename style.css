@@ -162,27 +162,46 @@ button:hover {
 #start-screen {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, var(--secondary), var(--bg));
+    background: rgba(15, 23, 42, 0.1); /* Transparent to see the 3D world */
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
     pointer-events: auto;
     z-index: 200;
+    transition: opacity 1s ease, visibility 1s;
 }
 
 .intro {
     text-align: center;
+    background: rgba(15, 23, 42, 0.7);
+    padding: 4rem;
+    border-radius: 3rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+    animation: scaleUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .intro h1 {
     font-family: var(--font-heading);
-    font-size: 5rem;
-    letter-spacing: -2px;
-    background: linear-gradient(to bottom right, #fff, #94a3b8);
-    background-clip: text;
+    font-size: 6rem;
+    font-weight: 800;
+    letter-spacing: -3px;
+    margin-bottom: 0.1rem;
+    background: linear-gradient(135deg, var(--accent), #fff);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
+    text-shadow: 0 10px 30px rgba(56, 189, 248, 0.3);
+}
+
+.intro p {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
 }
 
 .controls-guide {

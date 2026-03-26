@@ -166,6 +166,7 @@ class Simulation {
         this.activeCallAudio = null; // Áudio da chamada ativa
 
         this.setupEventListeners();
+        this.animate(); // Inicia o loop imediatamente para mostrar o fundo 3D
     }
 
     initLights() {
@@ -473,7 +474,10 @@ class Simulation {
         this.composer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    start() { document.getElementById('start-screen').classList.add('hidden'); this.isPaused = false; this.animate(); }
+    start() { 
+        document.getElementById('start-screen').classList.add('hidden'); 
+        this.isPaused = false; 
+    }
     
     resume() { 
         if (this.shouldReload) {
@@ -484,7 +488,6 @@ class Simulation {
         this.traffic.forEach(t=>this.scene.remove(t.group)); 
         this.traffic=[]; 
         this.isPaused=false; 
-        requestAnimationFrame(()=>this.animate()); 
     }
 
     showTip(t) { 
@@ -737,8 +740,19 @@ class Simulation {
     }
 
     animate() {
-        if (this.isPaused) return;
         requestAnimationFrame(() => this.animate());
+
+        if (this.isPaused) {
+            // Lógica de "Órbita" Cinematic no Menu
+            const time = Date.now() * 0.0005;
+            this.camera.position.x = Math.sin(time) * 20;
+            this.camera.position.z = Math.cos(time) * 15 + 10;
+            this.camera.position.y = 5;
+            this.camera.lookAt(0, 2, 0);
+            this.composer.render();
+            return;
+        }
+
         this.updateWeather();
         this.updateTrafficLights();
         this.spawnTraffic();
