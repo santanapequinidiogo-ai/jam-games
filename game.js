@@ -162,6 +162,7 @@ class Simulation {
         this.isCallActive = false;
         this.audioCtx = null;
         this.ringInterval = null;
+        this.activeCallAudio = null; // Áudio da chamada ativa
 
         this.setupEventListeners();
     }
@@ -576,6 +577,12 @@ class Simulation {
             this.isCallActive = true;
             this.safeScore -= 300;
             document.getElementById('distraction-warning').classList.remove('hidden');
+            
+            // Inicia o áudio da chamada (Mãe falando) em loop
+            this.activeCallAudio = new Audio('ringtonemom.mp3.mp3');
+            this.activeCallAudio.loop = true;
+            this.activeCallAudio.play().catch(e => console.error("Audio play error", e));
+
             // Auto hangup after 5s if player doesn't click
             setTimeout(() => this.endCall(), 5000);
         } else {
@@ -588,6 +595,13 @@ class Simulation {
         if (!this.isCallActive) return;
         this.isCallActive = false;
         document.getElementById('distraction-warning').classList.add('hidden');
+        
+        // Para o áudio da chamada imediatamente
+        if (this.activeCallAudio) {
+            this.activeCallAudio.pause();
+            this.activeCallAudio.currentTime = 0;
+            this.activeCallAudio = null;
+        }
     }
 
     updateWeather() {
