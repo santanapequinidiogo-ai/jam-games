@@ -9,7 +9,8 @@ const CONFIG = {
     SAFE_DISTANCE: 25, 
     SPEED_LIMIT: 100, 
     ACCEL: 0.25,
-    BRAKE: 2.5, // Freio muito mais potente (era 0.5)
+    BRAKE: 0.5, // Revertido para o freio suave
+    HANDBRAKE: 2.5, // Nova mecânica de freio de mão (forte)
     MAX_SPEED: 1.5,
     TURN_SPEED: 0.15 
 };
@@ -87,6 +88,7 @@ class Car {
         if (!this.isPlayer) return;
         if (controls.up) this.speed += CONFIG.ACCEL * 0.01;
         if (controls.down) this.speed -= CONFIG.BRAKE * 0.01;
+        if (controls.space) this.speed -= CONFIG.HANDBRAKE * 0.01;
         this.speed *= (weather === 'Rainy' ? 0.997 : 0.999);
         this.speed = Math.max(0, Math.min(this.speed, CONFIG.MAX_SPEED));
         
@@ -97,7 +99,7 @@ class Car {
         }
         
         // Braking Visual Effects
-        const isBraking = controls.down && this.speed > 0;
+        const isBraking = (controls.down || controls.space) && this.speed > 0;
         
         this.tailLights.forEach(light => {
             light.material.emissiveIntensity = isBraking ? 2.5 : 0.2; // Acende forte ao frear
@@ -166,7 +168,7 @@ class Simulation {
        this.weatherIntensity = 1;
         this.safeScore = 0;
         this.isPaused = true;
-        this.controls = { up: false, down: false, left: false, right: false };
+        this.controls = { up: false, down: false, left: false, right: false, space: false };
         this.rainParticles = null;
         this.shownViolations = new Set();
         this.shouldReload = false;
@@ -469,6 +471,7 @@ class Simulation {
         if (e.key === 'ArrowDown') this.controls.down = s;
         if (e.key === 'ArrowLeft') this.controls.left = s;
         if (e.key === 'ArrowRight') this.controls.right = s;
+        if (e.key === ' ') this.controls.space = s;
         
         if (e.key === 'Enter' && s) {
             const tipOverlay = document.getElementById('safety-tip-overlay');
