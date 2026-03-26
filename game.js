@@ -87,8 +87,8 @@ class Car {
         if (isPlayer) {
             this.headlights = [];
             [-1, 1].forEach(side => {
-                // Intensidade moderada (15) para evitar estourar a tela inteira (Bloom)
-                const sl = new THREE.SpotLight(0xffffee, 15, 150, Math.PI/4, 0.5, 1.0);
+                // Intensidade agora está em 5. Farol focado e realista.
+                const sl = new THREE.SpotLight(0xffffee, 5, 150, Math.PI/4, 0.5, 1.0);
                 sl.position.set(side * (carW/2-0.2), carH/2 + 0.5, -2); 
                 sl.target.position.set(side * (carW/2-0.2), -0.5, -20); // Aponta um pouco mais para baixo no chão
                 sl.castShadow = true;
@@ -149,13 +149,17 @@ class Simulation {
         
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        // Ativa HDR Tone Mapping para evitar que luzes super saturem a imagem (Efeito "Estourado")
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0; 
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         this.container.appendChild(this.renderer.domElement);
 
-        // BLOOM SETUP
+        // BLOOM SETUP (Redução Extrema)
         const renderScene = new RenderPass(this.scene, this.camera);
-        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        // Reduzido de 1.5 para 0.3 a força do Bloom. Impede que brilham ofusque a tela.
+        this.bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3, 0.4, 0.85);
         this.composer = new EffectComposer(this.renderer);
         this.composer.addPass(renderScene);
         this.composer.addPass(this.bloomPass);
