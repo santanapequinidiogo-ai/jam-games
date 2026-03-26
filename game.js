@@ -415,14 +415,20 @@ class Simulation {
             ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(64, 64, 60, 0, Math.PI*2); ctx.fill();
             // Fundo branco
             ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(64, 64, 48, 0, Math.PI*2); ctx.fill();
-            // Texto 150
-            ctx.fillStyle = 'black'; ctx.font = 'bold 45px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            // Texto 150 (Fonte maior)
+            ctx.fillStyle = 'black'; ctx.font = 'bold 55px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText('150', 64, 64);
 
             const tex = new THREE.CanvasTexture(canvas);
-            const sign = new THREE.Mesh(new THREE.CircleGeometry(2, 32), new THREE.MeshBasicMaterial({ map: tex }));
-            sign.position.set(-0.2, 7, 0);
-            sign.rotation.y = -Math.PI/2; // Virada para o jogador
+            const sign = new THREE.Mesh(new THREE.CircleGeometry(2, 32), new THREE.MeshStandardMaterial({ 
+                map: tex,
+                emissive: 0xffffff,
+                emissiveIntensity: 0.1, // Reduzido drasticamente para não embaçar com o Bloom
+                roughness: 0.5,
+                metalness: 0.1
+            }));
+            sign.position.set(0, 7, 0.2);
+            sign.rotation.y = 0; // Encarando o motorista (já que o círculo padrão olha para +Z)
             group.add(sign);
 
             group.position.set(CONFIG.ROAD_WIDTH/2 + 3, 0, z);
