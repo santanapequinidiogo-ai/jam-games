@@ -39,6 +39,13 @@ class Car {
         body.castShadow = true;
         this.group.add(body);
 
+        // Luz de 'Aura' (Rim Light) para o player se destacar no escuro
+        if (isPlayer) {
+            const aura = new THREE.PointLight(0xe2e8f0, 0.8, 20); // Luz suave, alcance 20m
+            aura.position.set(0, 3, 0); // Fica literalmente acima do teto do carro
+            this.group.add(aura);
+        }
+
         // Cabine
         const cabin = new THREE.Mesh(
             new THREE.BoxGeometry(carW * 0.9, cabinH, 2.2),
@@ -394,26 +401,27 @@ class Simulation {
         const PER_ROW = 80;
         const SPACING = 30;
 
-        // Textura Procedural para Janelas de Prédio
+        // Textura Procedural para Janelas de Prédio (Mais Polidas)
         const wC = document.createElement('canvas'); wC.width = wC.height = 256;
         const wCtx = wC.getContext('2d');
         wCtx.fillStyle = '#000'; wCtx.fillRect(0,0,256,256);
-        wCtx.fillStyle = '#fef08a'; // Cor de luz de janela
-        for(let py=10; py<256; py+=30) {
-            for(let px=10; px<256; px+=30) {
-                if(Math.random() > 0.6) wCtx.fillRect(px,py,15,20); // Acende 40% das janelas aleatoriamente
+        wCtx.fillStyle = '#ffdd88'; // Amarelo/Laranja Quente (Luz menos artificial)
+        for(let py=15; py<256; py+=45) { // Aumentei o espaço entre andares
+            for(let px=15; px<256; px+=40) { // Aumentei o espaço entre as janelas laterais
+                // Agora apenas 15% das janelas ficam acesas, para não ficar poluido
+                if(Math.random() > 0.85) wCtx.fillRect(px,py,12,24); 
             }
         }
         const winTex = new THREE.CanvasTexture(wC);
         winTex.wrapS = winTex.wrapT = THREE.RepeatWrapping;
 
-        // 3 Variações de prédio
+        // Variações de prédio mais escuras
         const mats = [0x0f172a, 0x1e293b, 0x334155].map(color => new THREE.MeshStandardMaterial({ 
             color: color, 
-            roughness: 0.8,
+            roughness: 0.9,
             emissiveMap: winTex,
             emissive: 0xffffee,
-            emissiveIntensity: 0.5 
+            emissiveIntensity: 0.4 // Reduzi a força para não gritar na visão periférica
         }));
 
         const createBuilding = (xPosition, matIndex) => {
@@ -422,9 +430,9 @@ class Simulation {
             const d = Math.random() * 8 + 8;
             const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats[matIndex]);
             
-            // Repete a textura de janelas proporcionalmente ao tamanho
+            // Repete a textura de janelas (Ajustado para que fiquem num bom tamanho na parede)
             const texClone = winTex.clone();
-            texClone.repeat.set(w/10, h/10);
+            texClone.repeat.set(w/16, h/16); // Espalhamento da textura (maior o divisor, maiores as janelas)
             b.material = b.material.clone();
             b.material.emissiveMap = texClone;
 
