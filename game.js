@@ -88,7 +88,7 @@ class Car {
             this.headlights = [];
             [-1, 1].forEach(side => {
                 const sl = new THREE.SpotLight(0xffffff, 5, 120, Math.PI/5, 0.5, 1);
-                sl.position.set(side * (carW/2-0.4), carH/2, -carL/2);
+                sl.position.set(side * (carW/2-0.4), carH/2, -2); // 4/2 = 2
                 sl.target.position.set(side * (carW/2-0.4), 0, -25);
                 sl.castShadow = true;
                 this.group.add(sl, sl.target);
