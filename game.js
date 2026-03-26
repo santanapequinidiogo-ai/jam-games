@@ -136,6 +136,7 @@ class Simulation {
         this.streetlights = [];
         this.powerWires = [];
         this.scenery = [];
+        this.speedSigns = [];
         
         this.initLights();
         this.initEnvironment();
@@ -236,7 +237,8 @@ class Simulation {
 
         this.initBuildings();
         this.initStreetlights();
-        this.initSemaphores(); // NOVO
+        this.initSemaphores(); 
+        this.initSpeedSigns(); // NOVO: Placas de velocidade
 
         this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.005); // Neblina mais suave (era 0.01)
     }
@@ -391,6 +393,42 @@ class Simulation {
         const wire = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(12)), new THREE.LineBasicMaterial({ color: 0x111111 }));
         this.scene.add(wire);
         this.powerWires.push({ mesh: wire, initialZ: midZ });
+    }
+
+    initSpeedSigns() {
+        const SPACING = 500;
+        const COUNT = 10;
+        for (let i = 0; i < COUNT; i++) {
+            const z = -i * SPACING - 150;
+            const group = new THREE.Group();
+            
+            // Postes
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 8), new THREE.MeshPhongMaterial({ color: 0x334155 }));
+            pole.position.y = 4;
+            group.add(pole);
+
+            // Placa (Círculo com Texto 150)
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            // Borda vermelha
+            ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(64, 64, 60, 0, Math.PI*2); ctx.fill();
+            // Fundo branco
+            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(64, 64, 48, 0, Math.PI*2); ctx.fill();
+            // Texto 150
+            ctx.fillStyle = 'black'; ctx.font = 'bold 45px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('150', 64, 64);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            const sign = new THREE.Mesh(new THREE.CircleGeometry(2, 32), new THREE.MeshBasicMaterial({ map: tex }));
+            sign.position.set(-0.2, 7, 0);
+            sign.rotation.y = -Math.PI/2; // Virada para o jogador
+            group.add(sign);
+
+            group.position.set(CONFIG.ROAD_WIDTH/2 + 3, 0, z);
+            this.scene.add(group);
+            this.speedSigns.push(group);
+        }
     }
 
     setupEventListeners() {
@@ -856,6 +894,7 @@ class Simulation {
         this.powerWires.forEach(w => { if (w.mesh.position.z + w.initialZ > pZ + 100) w.mesh.position.z -= 2400; });
         this.lines.forEach(l => { if (l.position.z > pZ + 20) l.position.z -= 500; });
         this.scenery.forEach(o => { if (o.position.z > pZ + 100) o.position.z -= 2400; }); // PER_ROW(80) * SPACING(30) = 2400
+        this.speedSigns.forEach(s => { if (s.position.z > pZ + 100) s.position.z -= 5000; }); // 10 placas * 500m
        if (this.rainParticles) { this.rainParticles.position.z = pZ; this.rainParticles.position.y -= 0.5; if (this.rainParticles.position.y < -10) this.rainParticles.position.y = 0; }
         
         this.camera.position.set(this.player.mesh.position.x * 0.5, 5, pZ + 15);
