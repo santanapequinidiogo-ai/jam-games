@@ -82,6 +82,19 @@ class Car {
         this.speed = 0;
         this.pitch = 0; // Inclinação do carro (frenagem)
         this.isPlayer = isPlayer;
+
+        // Faróis Dianteiros (Dinâmicos)
+        if (isPlayer) {
+            this.headlights = [];
+            [-1, 1].forEach(side => {
+                const sl = new THREE.SpotLight(0xffffff, 5, 120, Math.PI/5, 0.5, 1);
+                sl.position.set(side * (carW/2-0.4), carH/2, -carL/2);
+                sl.target.position.set(side * (carW/2-0.4), 0, -25);
+                sl.castShadow = true;
+                this.group.add(sl, sl.target);
+                this.headlights.push(sl);
+            });
+        }
     }
 
     update(controls, weather) {
@@ -131,7 +144,7 @@ class Simulation {
     constructor() {
         this.container = document.getElementById('three-container');
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x0f172a);
+        this.scene.background = new THREE.Color(0x050510); // Céu noturno escuro
         
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -186,26 +199,45 @@ class Simulation {
     }
 
     initLights() {
-        this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        this.sunLight = new THREE.DirectionalLight(0xfff0dd, 1.2);
+        this.scene.add(new THREE.AmbientLight(0x223355, 0.6)); // Luz ambiente noturna azulada
+        this.sunLight = new THREE.DirectionalLight(0xffaa55, 0.4); // Luz da lua / cidade difusa
         this.sunLight.position.set(50, 100, 50);
         this.sunLight.castShadow = true;
         this.scene.add(this.sunLight);
+    }
+
+    createAsphaltTexture() {
+        const c = document.createElement('canvas'); c.width = c.height = 512;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#111'; ctx.fillRect(0,0,512,512);
+        for(let i=0; i<40000; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#222' : '#000';
+            ctx.fillRect(Math.random()*512, Math.random()*512, 1, 1);
+        }
+        const tex = new THREE.CanvasTexture(c);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 400);
+        return tex;
     }
 
     initEnvironment() {
         // Chão base
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(1000, 4000),
-            new THREE.MeshPhongMaterial({ color: 0x334155 })
+            new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 })
         );
         ground.rotation.x = -Math.PI/2;
         ground.position.y = -0.1;
         this.scene.add(ground);
         this.grass = ground;
 
-        // Estrada
-        this.roadMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, shininess: 10 });
+        // Estrada Rica (Asfalto Molhado PBR)
+        this.roadMat = new THREE.MeshStandardMaterial({ 
+            color: 0x111111, 
+            roughnessMap: this.createAsphaltTexture(), 
+            roughness: 0.3, // Brilhante/Molhado
+            metalness: 0.5 
+        });
         this.road = new THREE.Mesh(new THREE.PlaneGeometry(CONFIG.ROAD_WIDTH, 4000), this.roadMat);
         this.road.rotation.x = -Math.PI/2;
         this.road.receiveShadow = true;
@@ -255,9 +287,9 @@ class Simulation {
         this.initBuildings();
         this.initStreetlights();
         this.initSemaphores(); 
-        this.initSpeedSigns(); // NOVO: Placas de velocidade
+        this.initSpeedSigns();
 
-        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.005); // Neblina mais suave (era 0.01)
+        this.scene.fog = new THREE.FogExp2(0x050510, 0.007); // Neblina noturna escura
     }
 
     initSemaphores() {
@@ -349,32 +381,73 @@ class Simulation {
             }
         }
     }
+    createWire(p1, p2) {
+        const midZ = (p1.z + p2.z)/2;
+        const curve = new THREE.CatmullRomCurve3([p1, new THREE.Vector3(p1.x, p1.y-2, midZ), p2]);
+        const wire = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(12)), new THREE.LineBasicMaterial({ color: 0x111111 }));
+        this.scene.add(wire);
+        this.powerWires.push({ mesh: wire, initialZ: midZ });
+    }
+
     initBuildings() {
         this.scenery = [];
-        const ROWS = 15, PER_ROW = 80, SPACING = 30; // Grade mais larga
-        const COLORS = [0x64748b, 0x475569, 0x334155, 0x1e293b, 0x94a3b8, 0x7c2d12, 0x1e3b8a];
-        const BLOCK_WIDTH = 18; // Cada "lote" tem 18m de largura
+        const PER_ROW = 80;
+        const SPACING = 30;
 
-        for (let row = 1; row <= ROWS; row++) {
-            for (let i = 0; i < PER_ROW; i++) {
-                const isTall = Math.random() > 0.4;
-                const w = 15; // Largura fixa menor que o lote para evitar sobreposição
-                const h = (isTall ? 15 + Math.random() * 60 : 5 + Math.random() * 15) * (1 - (row * 0.04));
-                const d = SPACING - 5; // Deixa um "beco" entre os prédios no eixo Z
-                
-                const b = new THREE.Mesh(
-                    new THREE.BoxGeometry(w, h, d),
-                    new THREE.MeshPhongMaterial({ color: COLORS[Math.floor(Math.random()*COLORS.length)], shininess: 30 })
-                );
-                const side = Math.random() > 0.5 ? 1 : -1;
-                
-                // GRADE PERFEITA: Sem sobreposição lateral (Eixo X)
-                const posX = side * (CONFIG.ROAD_WIDTH/2 + 6 + (row * BLOCK_WIDTH)); 
-                b.position.set(posX, h/2, -i * SPACING);
-                b.castShadow = true;
-                this.scene.add(b);
-                this.scenery.push(b);
+        // Textura Procedural para Janelas de Prédio
+        const wC = document.createElement('canvas'); wC.width = wC.height = 256;
+        const wCtx = wC.getContext('2d');
+        wCtx.fillStyle = '#000'; wCtx.fillRect(0,0,256,256);
+        wCtx.fillStyle = '#fef08a'; // Cor de luz de janela
+        for(let py=10; py<256; py+=30) {
+            for(let px=10; px<256; px+=30) {
+                if(Math.random() > 0.6) wCtx.fillRect(px,py,15,20); // Acende 40% das janelas aleatoriamente
             }
+        }
+        const winTex = new THREE.CanvasTexture(wC);
+        winTex.wrapS = winTex.wrapT = THREE.RepeatWrapping;
+
+        // 3 Variações de prédio
+        const mats = [0x0f172a, 0x1e293b, 0x334155].map(color => new THREE.MeshStandardMaterial({ 
+            color: color, 
+            roughness: 0.8,
+            emissiveMap: winTex,
+            emissive: 0xffffee,
+            emissiveIntensity: 0.5 
+        }));
+
+        const createBuilding = (xPosition, matIndex) => {
+            const h = (Math.random() > 0.4 ? 15 + Math.random() * 60 : 5 + Math.random() * 15);
+            const w = Math.random() * 8 + 8;
+            const d = Math.random() * 8 + 8;
+            const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mats[matIndex]);
+            
+            // Repete a textura de janelas proporcionalmente ao tamanho
+            const texClone = winTex.clone();
+            texClone.repeat.set(w/10, h/10);
+            b.material = b.material.clone();
+            b.material.emissiveMap = texClone;
+
+            b.position.set(xPosition + (Math.random()*4-2), h/2, 0);
+            b.castShadow = true;
+            return b;
+        };
+
+        for (let i = 0; i < PER_ROW; i++) {
+            const z = -i * SPACING;
+            const matIndex = Math.floor(Math.random() * mats.length);
+
+            // Lado esquerdo
+            const bLeft = createBuilding(-(CONFIG.ROAD_WIDTH/2 + 10 + Math.random()*10), matIndex);
+            bLeft.position.z = z;
+            this.scene.add(bLeft);
+            this.scenery.push(bLeft);
+
+            // Lado direito
+            const bRight = createBuilding(CONFIG.ROAD_WIDTH/2 + 10 + Math.random()*10, matIndex);
+            bRight.position.z = z;
+            this.scene.add(bRight);
+            this.scenery.push(bRight);
         }
     }
 
@@ -402,14 +475,6 @@ class Simulation {
                 lastP = new THREE.Vector3(x, 10, z);
             }
         }
-    }
-
-    createWire(p1, p2) {
-        const midZ = (p1.z + p2.z)/2;
-        const curve = new THREE.CatmullRomCurve3([p1, new THREE.Vector3(p1.x, p1.y-2, midZ), p2]);
-        const wire = new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(12)), new THREE.LineBasicMaterial({ color: 0x111111 }));
-        this.scene.add(wire);
-        this.powerWires.push({ mesh: wire, initialZ: midZ });
     }
 
     initSpeedSigns() {
