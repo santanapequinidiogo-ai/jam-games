@@ -420,3 +420,39 @@ button:hover {
     font-weight: 800;
     padding: 1.2rem 3rem;
 }
+
+/* Speed Warning Overlay (Excesso de Velocidade) */
+#speed-warning {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    transform: translateY(-50%);
+    background: rgba(220, 38, 38, 0.95);
+    border-left: 8px solid #991b1b;
+    border-radius: 12px;
+    padding: 20px 30px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 900;
+    box-shadow: 0 0 40px rgba(220, 38, 38, 0.6);
+    pointer-events: none;
+    z-index: 1000;
+    animation: flashSpeedWarning 0.4s infinite alternate;
+}
+
+#speed-warning.hidden {
+    display: none;
+}
+
+#speed-warning .warning-icon {
+    font-size: 2.5rem;
+}
+
+@keyframes flashSpeedWarning {
+    from { opacity: 0.8; transform: translateY(-50%) scale(0.95); box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+    to { opacity: 1; transform: translateY(-50%) scale(1.05); box-shadow: 0 0 60px rgba(220, 38, 38, 1); }
+}

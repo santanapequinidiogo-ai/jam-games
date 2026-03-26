@@ -902,10 +902,13 @@ class Simulation {
         speedHUD.style.color = (speed > 150) ? '#ef4444' : '#ffffff';
         
         // Speed Scoring Logic
+        const warningUI = document.getElementById('speed-warning');
         if (speed > 0 && speed <= 150) {
             this.safeScore += 0.15; // Consistent reward for safe speeds
+            if (warningUI) warningUI.classList.add('hidden');
         } else if (speed > 150) {
             this.safeScore -= 0.6; // Heavy penalty for speeding
+            if (warningUI) warningUI.classList.remove('hidden');
         }
 
         if (this.safeScore >= 5000) {
