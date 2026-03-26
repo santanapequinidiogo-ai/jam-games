@@ -11,6 +11,7 @@ const CONFIG = {
     ACCEL: 0.25,
     BRAKE: 0.5,
     MAX_SPEED: 1.5,
+    MIN_SPEED: 0.75, // 150 km/h (0.75 * 200)
     TURN_SPEED: 0.15 
 };
 
@@ -86,7 +87,7 @@ class Car {
         if (controls.up) this.speed += CONFIG.ACCEL * 0.01;
         if (controls.down) this.speed -= CONFIG.BRAKE * 0.01;
         this.speed *= (weather === 'Rainy' ? 0.997 : 0.999);
-        this.speed = Math.max(0, Math.min(this.speed, CONFIG.MAX_SPEED));
+        this.speed = Math.max(CONFIG.MIN_SPEED, Math.min(this.speed, CONFIG.MAX_SPEED));
         
         // Steering lock when stationary
         const steerDir = (controls.right ? 1 : 0) - (controls.left ? 1 : 0);
@@ -157,7 +158,7 @@ class Simulation {
         this.shouldReload = false;
         
         // Phone Distraction System
-        this.callTriggers = [1500, 3800, 4300];
+        this.callTriggers = [500, 1500, 3800, 4300];
         this.isPhoneRinging = false;
         this.isCallActive = false;
         this.audioCtx = null;
@@ -402,7 +403,6 @@ class Simulation {
         // Call Handlers
         document.getElementById('accept-call').onclick = () => this.handleCall(true);
         document.getElementById('reject-call').onclick = () => this.handleCall(false);
-        document.getElementById('hangup-btn').onclick = () => this.endCall();
     }
 
     handleKeys(e, s) {
