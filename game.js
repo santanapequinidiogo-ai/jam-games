@@ -207,6 +207,11 @@ class Simulation {
         this.ringInterval = null;
         this.activeCallAudio = null; // Áudio da chamada ativa
 
+        // Cache de cores para não sobrecarregar o processador 60x/segundo
+        this.skyGray = new THREE.Color(0x64748b);
+        this.skyBlue = new THREE.Color(0x87ceeb);
+        this.currentSky = new THREE.Color();
+
         this.setupEventListeners();
         this.animate(); // Inicia o loop imediatamente para mostrar o fundo 3D
     }
@@ -756,9 +761,9 @@ class Simulation {
         this.roadMat.roughness = 0.6 - (1 - this.weatherIntensity) * 0.3;
         
         // Trilha céu de Dia: Dia Nublado/Cinzento (0x64748b) <-> Limpo (0x87ceeb)
-        const sky = new THREE.Color().lerpColors(new THREE.Color(0x64748b), new THREE.Color(0x87ceeb), this.weatherIntensity);
-        this.scene.background = sky; 
-        this.scene.fog.color = sky;
+        this.currentSky.copy(this.skyGray).lerp(this.skyBlue, this.weatherIntensity);
+        this.scene.background = this.currentSky; 
+        this.scene.fog.color = this.currentSky;
         
         // Chance de trocar de clima: baixada de 0.002 (a cada ~8s) para 0.0002 (a cada ~1,5 minutos)
         if (Math.random() < 0.0002) { 
@@ -1021,8 +1026,15 @@ class Simulation {
         this.speedSigns.forEach(s => { if (s.position.z > pZ + 100) s.position.z -= 5000; }); // 10 placas * 500m
        if (this.rainParticles) { this.rainParticles.position.z = pZ; this.rainParticles.position.y -= 0.5; if (this.rainParticles.position.y < -10) this.rainParticles.position.y = 0; }
         
-        this.camera.position.set(this.player.mesh.position.x * 0.5, 5, pZ + 15);
-        this.camera.lookAt(this.player.mesh.position.x, 2, pZ - 10);
+        // FOV Dinâmico: Estica a visão ao acelerar, criando sensação de altíssima velocidade
+        const targetFOV = 65 + (this.player.speed * 22); 
+        this.camera.fov += (targetFOV - this.camera.fov) * 0.1;
+        this.camera.updateProjectionMatrix();
+        
+        // Posição de câmera suave
+        this.camera.position.set(this.player.mesh.position.x * 0.4, 4.5, pZ + 12);
+        this.camera.lookAt(this.player.mesh.position.x * 0.7, 1.5, pZ - 25);
+        
         document.getElementById('safe-score').innerText = Math.floor(this.safeScore);
         this.composer.render();
     }
