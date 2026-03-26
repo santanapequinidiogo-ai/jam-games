@@ -9,7 +9,7 @@ const CONFIG = {
     SAFE_DISTANCE: 25, 
     SPEED_LIMIT: 100, 
     ACCEL: 0.25,
-    BRAKE: 0.5,
+    BRAKE: 2.5, // Freio muito mais potente (era 0.5)
     MAX_SPEED: 1.5,
     TURN_SPEED: 0.15 
 };
@@ -66,18 +66,20 @@ class Car {
         // Luzes
         const lGeo = new THREE.BoxGeometry(0.5, 0.3, 0.1);
         const fMat = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Frontal
-        const tMat = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Traseira
+        const tMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.2 }); // Traseira (preparada para acender)
         
         const f1 = new THREE.Mesh(lGeo, fMat); f1.position.set(-carW/2+0.4, carH/2+0.6, -2);
         const f2 = f1.clone(); f2.position.x = carW/2-0.4;
         const r1 = new THREE.Mesh(lGeo, tMat); r1.position.set(-carW/2+0.4, carH/2+0.6, 2);
-        const r2 = r1.clone(); r2.position.x = carW/2-0.4;
+        const r2 = new THREE.Mesh(lGeo, tMat.clone()); r2.position.set(carW/2-0.4, carH/2+0.6, 2);
         
         this.group.add(f1, f2, r1, r2);
+        this.tailLights = [r1, r2]; // Salva as luzes traseiras para animar
 
         scene.add(this.group);
         this.mesh = this.group;
         this.speed = 0;
+        this.pitch = 0; // Inclinação do carro (frenagem)
         this.isPlayer = isPlayer;
     }
 
@@ -94,12 +96,24 @@ class Car {
             this.mesh.position.x += steerDir * CONFIG.TURN_SPEED;
         }
         
+        // Braking Visual Effects
+        const isBraking = controls.down && this.speed > 0;
+        
+        this.tailLights.forEach(light => {
+            light.material.emissiveIntensity = isBraking ? 2.5 : 0.2; // Acende forte ao frear
+        });
+
+        // Inclinação do carro para frente ao frear (Pitch)
+        const targetPitch = isBraking ? -0.05 * (this.speed) : 0;
+        this.pitch += (targetPitch - this.pitch) * 0.15;
+        this.mesh.rotation.x = this.pitch;
+
         // Wheel Animations
         const turnAngle = steerDir * 0.4;
         this.wheels[2].rotation.y += (turnAngle - this.wheels[2].rotation.y) * 0.1; // Front Left
         this.wheels[3].rotation.y += (turnAngle - this.wheels[3].rotation.y) * 0.1; // Front Right
         
-        // Rolling animation (cylinders rotated PI/2 on Z, so X is roll)
+        // Rolling animation
         this.wheels.forEach(w => w.rotation.x += this.speed * 0.8);
         
         const limit = (CONFIG.ROAD_WIDTH / 2) - 1.5;
