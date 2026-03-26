@@ -822,28 +822,54 @@ class Simulation {
                 pZ = this.player.mesh.position.z - 50 - Math.random() * 100;
             }
 
-            const pX = side * (swI + 1.2);
             const pColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
-            const p = new THREE.Mesh(
-                new THREE.BoxGeometry(0.7, 2.2, 0.7), 
-                new THREE.MeshStandardMaterial({ 
-                    color: pColor, 
-                    emissive: pColor, 
-                    emissiveIntensity: 0.8, // Brilho intenso para visibilidade
-                    metalness: 0.5,
-                    roughness: 0.2
-                })
-            );
-            p.position.set(pX, 1.1, pZ); 
-            this.scene.add(p);
+            
+            // ====== Criação de Humanóide Voxel ======
+            const pGroup = new THREE.Group();
+            const matShirt = new THREE.MeshStandardMaterial({ color: pColor, emissive: pColor, emissiveIntensity: 0.6, roughness: 0.8 });
+            const matSkin = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.6 }); // Tom de pele pálido
+            const matPants = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 }); // Calça escura
+
+            // Cabeça
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), matSkin);
+            head.position.set(0, 1.8, 0);
+            
+            // Tronco
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.65, 0.3), matShirt);
+            torso.position.set(0, 1.3, 0);
+
+            // Função para membros com Pivot no topo
+            const createLimb = (w, h, d, mat, px, py) => {
+                const geo = new THREE.BoxGeometry(w, h, d);
+                geo.translate(0, -h/2, 0); // Desloca a geometria para o Pivot ficar no topo (ombro/virilha)
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(px, py, 0);
+                return mesh;
+            };
+
+            // Braços e Pernas
+            const armL = createLimb(0.18, 0.6, 0.18, matSkin, -0.36, 1.55);
+            const armR = createLimb(0.18, 0.6, 0.18, matSkin, 0.36, 1.55);
+            const legL = createLimb(0.22, 0.8, 0.22, matPants, -0.15, 0.95);
+            const legR = createLimb(0.22, 0.8, 0.22, matPants, 0.15, 0.95);
+
+            pGroup.add(head, torso, armL, armR, legL, legR);
+            pGroup.position.set(pX, 0, pZ);
+            
+            // Os pedestres que já nascem atravessando a faixa, já começam virados pra pista
+            if (willCross) pGroup.rotation.y = side === 1 ? -Math.PI/2 : Math.PI/2;
+
+            this.scene.add(pGroup);
 
             this.pedestrians.push({ 
-                mesh: p, 
+                mesh: pGroup, 
+                armL, armR, legL, legR, // Membros salvos para animação
                 speedZ: willCross ? 0 : 0.2 + Math.random() * 0.15,
                 speedX: 0.13, 
                 side: side,
                 willCross: willCross,
-                isCrossing: false
+                isCrossing: false,
+                walkTimer: Math.random() * Math.PI // Timer individual desincronizado
             });
         }
     }
@@ -958,16 +984,26 @@ class Simulation {
 
                 // Atravessa se: Sinal Vermelho OU Cortesia (Sinal Verde + Carro Parado por perto) OU já está atravessando
                 if (this.lightState === 'Red' || (this.lightState === 'Green' && isPlayerStopping) || p.isCrossing) {
-                    if (!p.isCrossing && this.lightState === 'Green' && isPlayerStopping && !this.isProcessingCourtesy) {
-                        p.isCourtesy = true; 
-                        this.isProcessingCourtesy = true; // Impede que múltiplos pedestres deem bônus ao mesmo tempo
+                    if (!p.isCrossing) {
+                        p.mesh.rotation.y = p.side === 1 ? -Math.PI/2 : Math.PI/2; // Vira de frente para a pista ao começar a cruzar
+                        if (this.lightState === 'Green' && isPlayerStopping && !this.isProcessingCourtesy) {
+                            p.isCourtesy = true; 
+                            this.isProcessingCourtesy = true; 
+                        }
                     }
                     
                     p.isCrossing = true;
                     p.mesh.position.x -= p.speedX * p.side;
                     
+                    // Animação de caminhada (Walking Cycle - Articulações Locais)
+                    p.walkTimer += p.speedX * 1.5;
+                    const swing = Math.sin(p.walkTimer) * 0.6;
+                    p.armL.rotation.x = swing; p.armR.rotation.x = -swing;
+                    p.legL.rotation.x = -swing; p.legR.rotation.x = swing;
+                    
                     // Se terminou de atravessar, continua andando na calçada oposta
                     if (Math.abs(p.mesh.position.x) > CONFIG.ROAD_WIDTH/2 + 3) {
+                        p.mesh.rotation.y = 0; // Vira de volta pra frente (eixo z)
                         if (p.isCourtesy) {
                             this.showCourtesyFeedback();
                             p.isCourtesy = false;
@@ -980,7 +1016,13 @@ class Simulation {
                     }
                 }
             } else {
-                p.mesh.position.z += p.speedZ;
+                p.mesh.position.z += p.speedZ; // Movimento retilíneo
+                
+                // Animação de caminhada na calçada
+                p.walkTimer += p.speedZ * 0.8;
+                const swing = Math.sin(p.walkTimer) * 0.5;
+                p.armL.rotation.x = swing; p.armR.rotation.x = -swing;
+                p.legL.rotation.x = -swing; p.legR.rotation.x = swing;
             }
 
             // Colisão com pedestre (Atropelamento)
