@@ -822,6 +822,7 @@ class Simulation {
                 pZ = this.player.mesh.position.z - 50 - Math.random() * 100;
             }
 
+            const pX = side * (swI + 1.2);
             const pColor = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
             
             // ====== Criação de Humanóide Voxel ======
