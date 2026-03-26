@@ -87,8 +87,8 @@ class Car {
         if (isPlayer) {
             this.headlights = [];
             [-1, 1].forEach(side => {
-                // Intensidade elevada para 60 para criar um cone óbvio no asfalto molhado
-                const sl = new THREE.SpotLight(0xffffee, 60, 150, Math.PI/4, 0.5, 0.5);
+                // Intensidade moderada (15) para evitar estourar a tela inteira (Bloom)
+                const sl = new THREE.SpotLight(0xffffee, 15, 150, Math.PI/4, 0.5, 1.0);
                 sl.position.set(side * (carW/2-0.2), carH/2 + 0.5, -2); 
                 sl.target.position.set(side * (carW/2-0.2), -0.5, -20); // Aponta um pouco mais para baixo no chão
                 sl.castShadow = true;
@@ -233,12 +233,12 @@ class Simulation {
         this.scene.add(ground);
         this.grass = ground;
 
-        // Estrada Rica (Asfalto Molhado PBR)
+        // Estrada Rica (Asfalto Molhado PBR Ajustado)
         this.roadMat = new THREE.MeshStandardMaterial({ 
             color: 0x111111, 
             roughnessMap: this.createAsphaltTexture(), 
-            roughness: 0.3, // Brilhante/Molhado
-            metalness: 0.5 
+            roughness: 0.6, // Mais áspero para espalhar a luz e evitar queima da visão
+            metalness: 0.2 // Menos refletivo (parece asfalto em vez de vidro)
         });
         this.road = new THREE.Mesh(new THREE.PlaneGeometry(CONFIG.ROAD_WIDTH, 4000), this.roadMat);
         this.road.rotation.x = -Math.PI/2;
