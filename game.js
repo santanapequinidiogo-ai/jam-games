@@ -33,31 +33,11 @@ class Car {
         // Corpo
         const body = new THREE.Mesh(
             new THREE.BoxGeometry(carW, carH, 4),
-            // Reduzi metalness e adicionei leve emissão para que a pintura nunca fique preta
-            new THREE.MeshStandardMaterial({ 
-                color: color, 
-                metalness: 0.3, 
-                roughness: 0.4, 
-                emissive: color, 
-                emissiveIntensity: 0.15 
-            })
+            new THREE.MeshStandardMaterial({ color: color, metalness: 0.8, roughness: 0.2 })
         );
         body.position.y = 0.8;
         body.castShadow = true;
         this.group.add(body);
-
-        // Iluminação Pessoal do Carro para o Jogador não sumir
-        if (isPlayer) {
-            // 1. Aura de cima (Ilumina o teto)
-            const aura = new THREE.PointLight(0xffffff, 1.2, 15);
-            aura.position.set(0, 3, 0); 
-            this.group.add(aura);
-
-            // 2. Neon Underglow (Brilho radiante no asfalto abaixo do carro)
-            const underglow = new THREE.PointLight(color, 2.5, 10);
-            underglow.position.set(0, 0.4, 0); // Bem próximo ao chão
-            this.group.add(underglow);
-        }
 
         // Cabine
         const cabin = new THREE.Mesh(
